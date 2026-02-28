@@ -11,6 +11,17 @@ async function initDatabase() {
         await client.query(schema);
         console.log('[DB] ✅ Esquema inicializado correctamente');
 
+        // Migración: agregar columnas nuevas si no existen
+        const migrations = [
+            `ALTER TABLE resources ADD COLUMN IF NOT EXISTS telegram_notified_at TIMESTAMP`,
+            `ALTER TABLE resources ADD COLUMN IF NOT EXISTS last_ai_analysis TIMESTAMP`,
+            `ALTER TABLE resources ADD COLUMN IF NOT EXISTS notification_hash TEXT`,
+        ];
+        for (const m of migrations) {
+            try { await client.query(m); } catch (e) { /* ya existe */ }
+        }
+        console.log('[DB] ✅ Migraciones aplicadas');
+
         // Insertar fuentes de crawling iniciales
         const sources = [
             { name: 'GitHub Topics - Free APIs', url: 'https://github.com/topics/free-api', type: 'github' },

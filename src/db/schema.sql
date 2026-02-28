@@ -49,7 +49,12 @@ CREATE TABLE IF NOT EXISTS resources (
     last_checked    TIMESTAMP DEFAULT NOW(),
     last_changed    TIMESTAMP,
     created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
+    updated_at      TIMESTAMP DEFAULT NOW(),
+    
+    -- Tracking de notificaciones
+    telegram_notified_at  TIMESTAMP,
+    last_ai_analysis      TIMESTAMP,
+    notification_hash     TEXT
 );
 
 -- Historial de cambios en recursos

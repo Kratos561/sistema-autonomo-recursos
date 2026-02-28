@@ -1,85 +1,123 @@
 const pool = require('../db/pool');
 
 // ══════════════════════════════════════════════
-// Módulo 4: Evaluación de Rareza y Valor
+// Módulo 4: Evaluación de Rareza y Valor (v2)
 // Score = Rareza × Valor − Riesgo
 // ══════════════════════════════════════════════
 
+// Dominios de proveedores tech conocidos (high trust)
+const TRUSTED_PROVIDERS = [
+    'supabase.com', 'vercel.com', 'netlify.com', 'railway.app', 'render.com',
+    'fly.io', 'planetscale.com', 'neon.tech', 'upstash.com', 'turso.tech',
+    'cloudflare.com', 'workers.dev', 'deno.com', 'val.town',
+    'appwrite.io', 'pocketbase.io', 'directus.io', 'strapi.io',
+    'huggingface.co', 'replicate.com', 'together.ai', 'groq.com',
+    'openai.com', 'anthropic.com', 'cohere.com', 'mistral.ai',
+    'mongodb.com', 'redis.io', 'cockroachlabs.com', 'yugabyte.com',
+    'digitalocean.com', 'linode.com', 'vultr.com', 'oracle.com/cloud',
+    'sentry.io', 'grafana.com', 'datadog.com', 'newrelic.com',
+    'auth0.com', 'clerk.com', 'firebase.google.com', 'aws.amazon.com',
+    'heroku.com', 'glitch.com', 'replit.com', 'stackblitz.com',
+];
+
 // ── Calcular rareza ─────────────────────────────────────
-// Baja presencia en buscadores, pocas menciones, docs mínimos, origen académico/beta
 function calculateRarity(resource) {
-    let rarity = 50; // Base score
+    let rarity = 30; // Base más baja
 
-    // URLs menos conocidas son más raras
-    const commonDomains = ['github.com', 'google.com', 'aws.amazon.com', 'azure.com', 'firebase.google.com'];
-    const isCommonDomain = commonDomains.some(d => resource.url?.includes(d));
-    if (!isCommonDomain) rarity += 20;
+    // Proveedores muy conocidos = menos raros
+    const isTrusted = TRUSTED_PROVIDERS.some(d => resource.url?.includes(d));
+    if (isTrusted) {
+        rarity += 10; // Conocido pero confiable
+    } else {
+        rarity += 30; // Menos conocido = más raro
+    }
 
-    // Nombres cortos tienden a ser más establecidos (menos raros)
-    if (resource.name && resource.name.length > 30) rarity += 10;
-
-    // Fuente académica / beta
-    if (resource.url?.includes('arxiv') || resource.url?.includes('beta') || resource.url?.includes('research')) {
+    // Si viene de free-for.dev o lista curada, es más raro (hard to find)
+    if (resource.source_type === 'free-for-dev' || resource.source_type === 'github-list') {
         rarity += 15;
     }
 
-    // Dominio .io, .dev, .tech suelen ser más nuevos
-    if (resource.url?.match(/\.(io|dev|tech|app)\//)) {
-        rarity += 5;
+    // Dominio .io, .dev, .tech, .app suelen ser startups nuevas
+    if (resource.url?.match(/\.(io|dev|tech|app|ai|sh)\//)) {
+        rarity += 10;
+    }
+
+    // Fuente académica / beta / research
+    if (resource.url?.includes('arxiv') || resource.url?.includes('beta') || resource.url?.includes('research')) {
+        rarity += 15;
     }
 
     return Math.min(rarity, 100);
 }
 
 // ── Calcular valor ──────────────────────────────────────
-// Potencia técnica, límites gratuitos, estabilidad, facilidad de acceso
 function calculateValue(resource) {
-    let value = 30; // Base score
+    let value = 20; // Base más baja
+
+    const text = `${resource.name || ''} ${resource.description || ''} ${resource.free_tier || ''}`.toLowerCase();
 
     // Valor por tipo de recurso
-    const typeValues = { api: 25, database: 20, vps: 30, compute: 30, storage: 15, tool: 10, other: 5 };
+    const typeValues = { api: 25, database: 25, vps: 35, compute: 35, storage: 20, tool: 15, other: 5 };
     value += typeValues[resource.type] || 5;
 
-    // No requiere tarjeta de crédito = más accesible
-    if (!resource.credit_card) value += 15;
+    // Keywords de alto valor en la descripción
+    const highValueKeywords = [
+        'free tier', 'free plan', 'always free', 'forever free', 'no credit card',
+        'generous free', 'unlimited', 'lifetime', 'open source', 'self-hosted',
+    ];
+    for (const kw of highValueKeywords) {
+        if (text.includes(kw)) { value += 8; break; }
+    }
 
-    // No requiere auth = más fácil de usar
-    if (!resource.auth_required) value += 5;
+    // No requiere tarjeta = más accesible
+    if (!resource.credit_card) value += 10;
 
     // Tiene info sobre free tier documentado
     if (resource.free_tier && resource.free_tier.length > 0) value += 10;
 
-    // Dominio técnico potente
-    if (['ml', 'compute', 'nlp', 'vision'].includes(resource.domain)) value += 10;
+    // Dominio técnico de alto impacto
+    const highImpactDomains = ['ml', 'compute', 'nlp', 'vision'];
+    if (highImpactDomains.includes(resource.domain)) value += 10;
+
+    // Si es un proveedor trusted, tiene más valor (estable)
+    const isTrusted = TRUSTED_PROVIDERS.some(d => resource.url?.includes(d));
+    if (isTrusted) value += 10;
 
     return Math.min(value, 100);
 }
 
 // ── Calcular riesgo ─────────────────────────────────────
 function calculateRisk(resource) {
-    let risk = 10; // Base risk
+    let risk = 5; // Base baja
 
-    // Dominios desconocidos = más riesgo
-    if (resource.url?.match(/\.(xyz|club|icu|top)\//)) {
-        risk += 30;
+    const text = `${resource.name || ''} ${resource.description || ''}`.toLowerCase();
+
+    // Dominios sospechosos
+    if (resource.url?.match(/\.(xyz|club|icu|top|buzz|cam)\//)) risk += 30;
+
+    // Sin descripción = no sabemos qué es
+    if (!resource.description || resource.description.length < 10) risk += 20;
+
+    // Keywords de riesgo
+    const riskKeywords = ['trial', 'expires', 'limited time', 'beta only', 'deprecated', 'shutdown'];
+    for (const kw of riskKeywords) {
+        if (text.includes(kw)) { risk += 15; break; }
     }
 
-    // Sin descripción = más riesgo
-    if (!resource.description || resource.description.length < 20) {
-        risk += 15;
-    }
+    // Requiere tarjeta de crédito
+    if (resource.credit_card) risk += 20;
 
-    // Estado degradado o desconocido
-    if (resource.status === 'degraded') risk += 20;
-    if (resource.status === 'unknown') risk += 10;
+    // Status degradado
+    if (resource.status === 'degraded') risk += 15;
+    if (resource.status === 'dead') risk += 40;
 
     return Math.min(risk, 100);
 }
 
 // ── Calcular score final ────────────────────────────────
 function calculateFinalScore(rarity, value, risk) {
-    // Score = (Rareza × Valor) / 100 − Riesgo × 0.3
-    const score = ((rarity * value) / 100) - (risk * 0.3);
+    // Score = (Rareza × Valor) / 100 − Riesgo × 0.5
+    const score = ((rarity * value) / 100) - (risk * 0.5);
     return Math.max(0, Math.min(100, Math.round(score * 100) / 100));
 }
 
@@ -104,11 +142,11 @@ async function evaluateResources() {
 
             await pool.query(
                 `UPDATE resources SET
-          rarity_score = $1,
-          value_score = $2,
-          risk_score = $3,
-          final_score = $4,
-          last_checked = NOW()
+           rarity_score = $1,
+           value_score = $2,
+           risk_score = $3,
+           final_score = $4,
+           last_checked = NOW()
          WHERE id = $5`,
                 [rarity, value, risk, finalScore, resource.id]
             );

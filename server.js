@@ -38,29 +38,28 @@ app.use((err, req, res, next) => {
 
 // ── Start ───────────────────────────────────────────────
 async function start() {
+    console.log('══════════════════════════════════════════════');
+    console.log('🛰️  Sistema Autónomo de Descubrimiento');
+    console.log('   de Recursos Tecnológicos Gratuitos');
+    console.log('══════════════════════════════════════════════\n');
+
+    // Bind port FIRST so Render doesn't kill us for slow startup
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`[Server] 🌐 Dashboard: http://localhost:${PORT}`);
+        console.log(`[Server] 📡 API:       http://localhost:${PORT}/api`);
+        console.log(`[Server] 💊 Health:    http://localhost:${PORT}/api/health\n`);
+    });
+
+    // Then initialize database (non-blocking for the HTTP server)
     try {
-        console.log('══════════════════════════════════════════════');
-        console.log('🛰️  Sistema Autónomo de Descubrimiento');
-        console.log('   de Recursos Tecnológicos Gratuitos');
-        console.log('══════════════════════════════════════════════\n');
-
-        // Inicializar base de datos
         await initDatabase();
-
-        // Iniciar servidor HTTP
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`\n[Server] 🌐 Dashboard: http://localhost:${PORT}`);
-            console.log(`[Server] 📡 API:       http://localhost:${PORT}/api`);
-            console.log(`[Server] 💊 Health:    http://localhost:${PORT}/api/health\n`);
-        });
-
-        // Iniciar scheduler automático
-        startScheduler();
-
+        console.log('[Server] ✅ Base de datos inicializada');
     } catch (err) {
-        console.error('[Server] ❌ Error al iniciar:', err.message);
-        process.exit(1);
+        console.error('[Server] ⚠️ Error al inicializar DB (continuando):', err.message);
     }
+
+    // Start scheduler
+    startScheduler();
 }
 
 start();

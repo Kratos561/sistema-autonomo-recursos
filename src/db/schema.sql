@@ -3,10 +3,18 @@
 -- Esquema de Base de Datos
 -- ============================================
 
--- Tipos enumerados
-CREATE TYPE resource_type AS ENUM ('api', 'database', 'vps', 'compute', 'storage', 'tool', 'other');
-CREATE TYPE resource_status AS ENUM ('active', 'degraded', 'dead', 'unknown');
-CREATE TYPE resource_domain AS ENUM ('ml', 'vision', 'nlp', 'compute', 'data', 'devops', 'security', 'general');
+-- Tipos enumerados (idempotente)
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'resource_type') THEN
+        CREATE TYPE resource_type AS ENUM ('api', 'database', 'vps', 'compute', 'storage', 'tool', 'other');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'resource_status') THEN
+        CREATE TYPE resource_status AS ENUM ('active', 'degraded', 'dead', 'unknown');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'resource_domain') THEN
+        CREATE TYPE resource_domain AS ENUM ('ml', 'vision', 'nlp', 'compute', 'data', 'devops', 'security', 'general');
+    END IF;
+END $$;
 
 -- Tabla principal de recursos descubiertos
 CREATE TABLE IF NOT EXISTS resources (

@@ -2,7 +2,17 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 const { runPipeline } = require('../modules/scheduler');
+const { sendDailySummary } = require('../modules/telegram');
 
+// ── POST /api/telegram/summary – Enviar resumen por Telegram ──
+router.post('/telegram/summary', async (req, res) => {
+    try {
+        res.json({ success: true, message: 'Resumen enviado a Telegram' });
+        sendDailySummary();
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 // ── GET /api/resources – Listar recursos ────────────────
 router.get('/resources', async (req, res) => {
     try {

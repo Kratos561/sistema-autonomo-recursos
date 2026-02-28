@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { runAllCrawlers } = require('../crawlers/engine');
 const { normalizeResources } = require('./normalizer');
 const { evaluateResources } = require('./scorer');
+const { sendPipelineComplete, sendVIPAlert, sendDailySummary } = require('./telegram');
 const pool = require('../db/pool');
 
 let isRunning = false;
@@ -34,11 +35,18 @@ async function runPipeline() {
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(1);
 
+        // Contar recursos VIP encontrados
+        const vipResult = await pool.query(
+            `SELECT COUNT(*) as count FROM resources WHERE final_score >= 60`
+        );
+        const vipCount = parseInt(vipResult.rows[0].count);
+
         console.log('\n══════════════════════════════════════════════');
         console.log(`[Pipeline] ✅ Completado en ${duration}s`);
         console.log(`  → Recursos recolectados: ${crawled}`);
         console.log(`  → Recursos normalizados: ${normalized}`);
         console.log(`  → Recursos evaluados:    ${scored}`);
+        console.log(`  → Recursos VIP (≥60):    ${vipCount}`);
         console.log('══════════════════════════════════════════════\n');
 
         await pool.query(
@@ -46,9 +54,35 @@ async function runPipeline() {
        VALUES ('scheduler', 'pipeline', 'success', $1, $2)`,
             [
                 `Pipeline completado en ${duration}s`,
-                JSON.stringify({ crawled, normalized, scored, duration_seconds: parseFloat(duration) })
+                JSON.stringify({ crawled, normalized, scored, vip: vipCount, duration_seconds: parseFloat(duration) })
             ]
         );
+
+        // ── Enviar notificaciones Telegram ──
+        try {
+            // Notificar que el pipeline terminó
+            await sendPipelineComplete({ crawled, normalized, scored, vip: vipCount });
+
+            // Si hay recursos VIP nuevos, enviar alertas individuales
+            const newVIPs = await pool.query(
+                `SELECT name, url, type, domain, status, description, free_tier,
+                        rarity_score, value_score, risk_score, final_score
+                 FROM resources 
+                 WHERE final_score >= 60 
+                   AND discovered_at > NOW() - INTERVAL '2 hours'
+                 ORDER BY final_score DESC
+                 LIMIT 5`
+            );
+
+            for (const vip of newVIPs.rows) {
+                await sendVIPAlert(vip);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            console.log('[Telegram] ✅ Notificaciones enviadas');
+        } catch (telegramErr) {
+            console.error('[Telegram] ⚠️ Error enviando notificaciones:', telegramErr.message);
+        }
     } catch (err) {
         console.error('[Pipeline] ❌ Error:', err.message);
         await pool.query(

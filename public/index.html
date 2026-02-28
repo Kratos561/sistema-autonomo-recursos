@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema Autónomo de Descubrimiento de Recursos Tecnológicos Gratuitos - Dashboard de monitoreo y control">
+  <title>🛰️ Sistema Autónomo – Radar de Recursos Gratuitos</title>
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🛰️</div>
+        <span class="logo-text">Sistema Autónomo</span>
+      </div>
+      <div class="header-actions">
+        <div class="status-dot" id="health-dot" title="Estado del sistema"></div>
+        <button class="btn btn-primary" id="btn-run" onclick="triggerPipeline()">🚀 Ejecutar Pipeline</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Recursos Totales</div>
+        <div class="stat-value" id="total-resources">0</div>
+        <div class="stat-sub">📊 Descubiertos por el sistema</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">APIs Gratuitas</div>
+        <div class="stat-value" id="total-apis">0</div>
+        <div class="stat-sub">🔌 Endpoints descubiertos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Infraestructura</div>
+        <div class="stat-value" id="total-infra">0</div>
+        <div class="stat-sub">🖥️ DBs + VPS + Compute</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Gemas Ocultas</div>
+        <div class="stat-value" id="total-gems">0</div>
+        <div class="stat-sub">💎 Score ≥ 60</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="overview" onclick="switchTab('overview')">📡 Overview</button>
+      <button class="tab" data-tab="resources" onclick="switchTab('resources')">📦 Recursos</button>
+      <button class="tab" data-tab="sources" onclick="switchTab('sources')">🌐 Fuentes</button>
+      <button class="tab" data-tab="logs" onclick="switchTab('logs')">📋 Logs</button>
+    </div>
+
+    <!-- Tab: Overview -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">🏆 Top Recursos Descubiertos</h2>
+        </div>
+        <div class="resources-grid" id="top-resources">
+          <div class="loading"><div class="spinner"></div> Cargando recursos...</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">🔔 Alertas Recientes</h2>
+        </div>
+        <div class="alerts-list" id="recent-alerts">
+          <div class="loading"><div class="spinner"></div> Cargando alertas...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Resources -->
+    <div class="tab-content" id="tab-resources">
+      <div class="filters">
+        <select class="filter-select" id="filter-type" onchange="loadResources()">
+          <option value="">Todos los tipos</option>
+          <option value="api">🔌 APIs</option>
+          <option value="database">🗃️ Bases de datos</option>
+          <option value="vps">🖥️ VPS</option>
+          <option value="compute">⚙️ Compute</option>
+          <option value="storage">💾 Storage</option>
+          <option value="tool">🔧 Herramientas</option>
+        </select>
+        <select class="filter-select" id="filter-domain" onchange="loadResources()">
+          <option value="">Todos los dominios</option>
+          <option value="ml">🧠 Machine Learning</option>
+          <option value="nlp">💬 NLP</option>
+          <option value="vision">👁️ Visión</option>
+          <option value="compute">⚙️ Compute</option>
+          <option value="data">📊 Data</option>
+          <option value="devops">🚀 DevOps</option>
+          <option value="security">🔒 Seguridad</option>
+        </select>
+        <select class="filter-select" id="filter-score" onchange="loadResources()">
+          <option value="">Cualquier score</option>
+          <option value="60">💎 ≥ 60 (Gemas)</option>
+          <option value="40">🟡 ≥ 40</option>
+          <option value="20">🟠 ≥ 20</option>
+        </select>
+      </div>
+      <div class="resources-grid" id="all-resources">
+        <div class="loading"><div class="spinner"></div> Cargando recursos...</div>
+      </div>
+    </div>
+
+    <!-- Tab: Sources -->
+    <div class="tab-content" id="tab-sources">
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">🌐 Fuentes de Crawling</h2>
+        </div>
+        <div class="alerts-list" id="crawl-sources">
+          <div class="loading"><div class="spinner"></div> Cargando fuentes...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Logs -->
+    <div class="tab-content" id="tab-logs">
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">📋 Log del Sistema</h2>
+        </div>
+        <div class="log-list" id="system-logs">
+          <div class="loading"><div class="spinner"></div> Cargando logs...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

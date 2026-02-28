@@ -1,0 +1,27 @@
+{
+  "name": "sistema-autonomo-recursos",
+  "version": "1.0.0",
+  "description": "Sistema Autónomo de Descubrimiento de Recursos Tecnológicos Gratuitos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["crawler", "free-resources", "autonomous", "discovery"],
+  "author": "The Observer",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.3"
+  }
+}

@@ -1,0 +1,58 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║  SISTEMA AUTÓNOMO DE DESCUBRIMIENTO DE RECURSOS GRATUITOS          ║
+║  Plataformas Conectadas y Credenciales                             ║
+║  Última actualización: 2026-02-28                                  ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════
+ 1. RENDER (Alojamiento / Hosting)
+═══════════════════════════════════════════════════════════════════════
+  Plataforma:    Render.com
+  Tipo:          Cloud Hosting (Web Service)
+  API Key:       rnd_GGxYDMx7NdaCOENdRg0WaikBMvm3
+  API Base URL:  https://api.render.com/v1
+  Owner ID:      tea-d6eces3h46gs73e9ac3g
+  Team Name:     the observer
+  Email:         surfreefiremax76@gmail.com
+  Dashboard:     https://dashboard.render.com
+  Estado:        ✅ Conectado
+
+═══════════════════════════════════════════════════════════════════════
+ 2. NEON (Base de Datos PostgreSQL)
+═══════════════════════════════════════════════════════════════════════
+  Plataforma:    Neon.tech
+  Tipo:          Serverless PostgreSQL
+  API Key:       napi_3mvmme5vivji82xw7e2cg0hyo2fvjnagw6wb3pow7dypic85r38hp41jdl6d8jv9
+  API Base URL:  https://console.neon.tech/api/v2
+  Org ID:        org-patient-pond-08978078
+  Project ID:    hidden-recipe-44823935
+  Project Name:  sistema-autonomo-recursos
+  Branch ID:     br-sweet-base-ai7lozrs
+  Database:      neondb
+  User:          neondb_owner
+  Password:      npg_AFa0EgBp2QjS
+  Host:          ep-dark-recipe-aiu1upga.c-4.us-east-1.aws.neon.tech
+  Pooler Host:   ep-dark-recipe-aiu1upga-pooler.c-4.us-east-1.aws.neon.tech
+  Connection:    postgresql://neondb_owner:npg_AFa0EgBp2QjS@ep-dark-recipe-aiu1upga.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
+  PG Version:    17
+  Región:        aws-us-east-1
+  Dashboard:     https://console.neon.tech
+  Estado:        ✅ Conectado
+
+═══════════════════════════════════════════════════════════════════════
+ RESUMEN DE SERVICIOS
+═══════════════════════════════════════════════════════════════════════
+  ┌──────────────────┬────────────────────────┬───────────┐
+  │ Servicio         │ Función                │ Estado    │
+  ├──────────────────┼────────────────────────┼───────────┤
+  │ Render           │ Hosting del sistema    │ ✅ Activo │
+  │ Neon PostgreSQL  │ Base de datos          │ ✅ Activo │
+  └──────────────────┴────────────────────────┴───────────┘
+
+═══════════════════════════════════════════════════════════════════════
+ NOTAS
+═══════════════════════════════════════════════════════════════════════
+  • Todas las API Keys son secretas, no compartir.
+  • La base de datos usa SSL obligatorio (sslmode=require).
+  • El sistema se ejecuta 24/7 con crawling automático cada hora.
+  • Dashboard accesible en la URL de Render una vez desplegado.

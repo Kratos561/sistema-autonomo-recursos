@@ -5,6 +5,7 @@ const { normalizeResources } = require('./normalizer');
 const { evaluateResources } = require('./scorer');
 const { analyzeNewResources } = require('./analyzer');
 const { sendPipelineComplete, sendVIPAlert, sendDailySummary, sendMessage } = require('./telegram');
+const { runProfiler } = require('./profiler');
 const pool = require('../db/pool');
 
 let isRunning = false;
@@ -41,8 +42,12 @@ async function runPipeline() {
         console.log('[Pipeline] 📊 Paso 3/4: Evaluación...');
         const scored = await evaluateResources();
 
+        // Paso 3.5: Profiling de Latencia HFT
+        console.log('[Pipeline] ⚡ Paso 3.5/5: Profiling de Latencia HFT...');
+        const profiledCount = await runProfiler();
+
         // Paso 4: Análisis con IA
-        console.log('[Pipeline] 🧠 Paso 4/4: Análisis con IA...');
+        console.log('[Pipeline] 🧠 Paso 4/5: Análisis con IA...');
         const { analyzed, report: aiReport } = await analyzeNewResources();
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(1);

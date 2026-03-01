@@ -23,13 +23,20 @@ function callAI(prompt, maxTokens = 800) {
             messages: [
                 {
                     role: 'system',
-                    content: `Eres un analista tecnológico senior especializado en evaluar herramientas, plataformas y servicios digitales gratuitos para desarrolladores.
+                    content: `Eres el analista táctico del sistema SENTINEL NEXUS — una plataforma de trading algorítmico de alta frecuencia, IA y análisis cuantitativo.
 
-Tu misión es generar informes detallados, claros y útiles en español natural y conversacional. 
-Escribe como si le explicaras a un colega desarrollador inteligente, no como un robot.
-Usa emojis para estructurar visualmente el informe, pero sin exagerar.
-Sé honesto: si algo tiene limitaciones importantes, dilo claramente.
-Responde SOLO el contenido del informe, sin saludos ni despedidas.`
+Tu misión es evaluar recursos tecnológicos gratuitos con un enfoque militar-táctico: determinar si cada recurso otorga una VENTAJA ASIMÉTRICA al sistema Sentinel en alguna de estas 6 áreas críticas:
+1. 🥷 Ciberseguridad / Evasión / Stealth (proxies, anti-detect, bypass)
+2. ⚡ Infraestructura Cloud / Bases de Datos gratuitas
+3. 🧠 IA / Modelos Cuantitativos / LLMs para finanzas
+4. 🩸 Fuentes de Datos Alternativos / Market Data / Alpha
+5. 🧮 Algoritmos / Estrategias de Trading / Backtesting
+6. ⚙️ Optimización Extrema de Código / Low Latency
+
+Escribes en español natural y conversacional como un colega senior de fintech.
+Usa emojis para estructurar pero sin exagerar. Sé brutalmente honesto.
+Si algo es basura disfrazada de free tier, dilo sin rodeos.
+Responde SOLO el contenido del reporte táctico, sin saludos ni despedidas.`
                 },
                 { role: 'user', content: prompt }
             ],
@@ -102,11 +109,13 @@ Responde SOLO el contenido del informe, sin saludos ni despedidas.`
 
 // ── Analizar un recurso individual con informe detallado ──
 async function analyzeResource(resource) {
-    const prompt = `Necesito que analices en profundidad el siguiente recurso tecnológico gratuito que mi sistema descubrió automáticamente en internet. 
-Quiero un informe completo que me ayude a entender si vale la pena usarlo o recomendarlo.
+    const prompt = `SENTINEL NEXUS — REPORTE TÁCTICO DE RECONOCIMIENTO
+
+Mi sistema autónomo de recolección de inteligencia tecnológica para trading algorítmico acaba de descubrir este recurso.
+Necesito un REPORTE TÁCTICO que me diga si esto fortalece o debilita la operación de Sentinel.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 DATOS DEL RECURSO
+🎯 RECURSO INTERCEPTADO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Nombre:        ${resource.name}
 URL:           ${resource.url}
@@ -115,30 +124,40 @@ Dominio técnico: ${resource.domain || 'general'}
 Descripción:   ${resource.description || 'No se obtuvo descripción automáticamente.'}
 Free Tier info: ${resource.free_tier || 'No especificado en los datos recolectados.'}
 ¿Requiere autenticación?: ${resource.auth_required ? 'Sí' : 'No especificado'}
-¿Requiere tarjeta de crédito?: ${resource.credit_card ? 'Sí (dato importante)' : 'No / No especificado'}
-Puntuación de mi sistema:
+¿Requiere tarjeta de crédito?: ${resource.credit_card ? 'Sí (ALERTA)' : 'No / No especificado'}
+Puntuación Sentinel:
   → Rareza:   ${resource.rarity_score}/100
   → Valor:    ${resource.value_score}/100
   → Riesgo:   ${resource.risk_score}/100
   → FINAL:    ${resource.final_score}/100
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Genera el informe con esta estructura exacta:
+Genera el REPORTE TÁCTICO con esta estructura exacta:
 
-🔍 **¿QUÉ ES?**
-Explica con tus propias palabras qué hace esta plataforma/herramienta/servicio. Imagina que se lo explicas a alguien que nunca la ha visto. 2-3 oraciones naturales.
+🔍 **¿QUÉ ES EXACTAMENTE?**
+Explica con tus propias palabras qué hace este recurso. 2-3 oraciones claras y directas.
 
-🛠️ **¿PARA QUÉ SIRVE EN LA PRÁCTICA?**
-Lista 3-5 casos de uso concretos y reales. No genéricos, sino específicos. Ejemplo: "Puedes usarla para X si estás construyendo Y".
+🆓 **LÍMITES EXACTOS DE LA CAPA GRATUITA**
+¿Cuántas requests/día? ¿Cuántos GB? ¿Cuántos tokens? ¿Requiere tarjeta de crédito? Sé lo más específico posible con los números. Si no se conocen, dilo.
 
-🆓 **¿QUÉ TAN BUENO ES EL TIER GRATUITO?**
-Dale una calificación de ★☆☆☆☆ a ★★★★★ y explica por qué. ¿Es suficiente para un proyecto real? ¿Cuáles son los límites más importantes?
+🎯 **¿CÓMO ESTO MEJORA O FORTIFICA SENTINEL?**
+Esto es lo MÁS IMPORTANTE. Analiza el recurso en el contexto de un sistema de trading algorítmico que necesita:
+- Scraping sigiloso de datos de mercado
+- Base de datos PostgreSQL rápida para datos cuantitativos
+- Ejecución de órdenes con baja latencia
+- IA para análisis de señales y predicción
+- Fuentes de datos alternativas (order flow, dark pools, etc.)
+- Backtesting y estrategias cuantitativas
+Di explícitamente en cuál de las 6 categorías Sentinel encaja y POR QUÉ es útil.
 
-⚠️ **PRECAUCIONES Y LIMITACIONES**
-¿Hay algo importante que el usuario debe saber antes de usarlo? Restricciones, términos dudosos, recursos que podrían ser efímeros, competidores mejores, etc.
+💻 **FRAGMENTO DE CÓDIGO DE INTEGRACIÓN**
+Proporciona un snippet de código viable (Node.js o Python) que demuestre cómo conectar o probar este recurso. Debe ser funcional, no pseudo-código.
 
-✅ **VEREDICTO FINAL**
-Una conclusión de 2-3 oraciones en tono directo. ¿Vale la pena? ¿Para quién es ideal? ¿Lo recomendarías?`;
+⚠️ **RIESGOS Y PRECAUCIONES**
+¿Puede desaparecer? ¿Hay rate limits agresivos? ¿Competidores superiores? ¿Términos de uso restrictivos?
+
+✅ **VEREDICTO SENTINEL**
+¿Este recurso merece ser integrado al arsenal de Sentinel? Responde: INTEGRAR / MONITOREAR / DESCARTAR y justifica en 2 oraciones.`;
 
     console.log(`[AI] 🧠 Analizando: ${resource.name}...`);
     const analysis = await callAI(prompt, 900);

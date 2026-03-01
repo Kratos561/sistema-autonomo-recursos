@@ -35,7 +35,7 @@ router.get('/resources', async (req, res) => {
         const cacheKey = `resources_${type}_${domain}_${min_score}_${limit}`;
 
         const data = await getCached(cacheKey, async () => {
-            let query = `SELECT * FROM resources WHERE 1=1`;
+            let query = `SELECT id, name, url, type, domain, rarity_score, value_score, final_score, tech_summary, latency_ms FROM resources WHERE 1=1`;
             const params = [];
             let paramIndex = 1;
 
@@ -65,7 +65,7 @@ router.get('/stats', async (req, res) => {
                 pool.query('SELECT type, COUNT(*) as count FROM resources GROUP BY type ORDER BY count DESC'),
                 pool.query('SELECT status, COUNT(*) as count FROM resources GROUP BY status ORDER BY count DESC'),
                 pool.query('SELECT domain, COUNT(*) as count FROM resources GROUP BY domain ORDER BY count DESC'),
-                pool.query('SELECT name, url, final_score, type, domain FROM resources ORDER BY final_score DESC LIMIT 10'),
+                pool.query('SELECT name, url, final_score, type, domain, latency_ms FROM resources ORDER BY final_score DESC LIMIT 10'),
                 pool.query('SELECT * FROM alerts ORDER BY created_at DESC LIMIT 10'),
                 pool.query('SELECT * FROM system_log ORDER BY created_at DESC LIMIT 20'),
             ]);

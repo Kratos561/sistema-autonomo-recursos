@@ -33,11 +33,12 @@ CREATE TABLE IF NOT EXISTS resources (
     auth_required   BOOLEAN DEFAULT false,
     credit_card     BOOLEAN DEFAULT false,
     
-    -- Métricas de scoring
+    -- Métricas de scoring y performance
     rarity_score    DECIMAL(5,2) DEFAULT 0,
     value_score     DECIMAL(5,2) DEFAULT 0,
     risk_score      DECIMAL(5,2) DEFAULT 0,
     final_score     DECIMAL(5,2) DEFAULT 0,
+    latency_ms      INTEGER,
     
     -- Metadatos de descubrimiento
     source_url      TEXT,

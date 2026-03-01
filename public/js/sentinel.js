@@ -100,6 +100,17 @@ function scoreClass(score) {
     return 'low';
 }
 
+function latencyHTML(ms) {
+    if (ms == null) return '<span style="color:var(--text-dim)">--</span>';
+    const num = parseInt(ms);
+    let color = 'var(--text-bright)';
+    let badge = '';
+    if (num < 100) { color = 'var(--green)'; badge = ' ⚡'; }
+    else if (num < 300) color = 'var(--amber)';
+    else color = 'var(--red)';
+    return `<span style="color:${color}">${num}ms${badge}</span>`;
+}
+
 function escapeHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
@@ -168,6 +179,7 @@ function renderTopTable(resources) {
             `<td><a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" style="color:var(--text-bright);text-decoration:none">${escapeHtml(r.name)}</a></td>` +
             `<td><span class="domain-tag ${domain}">${escapeHtml(DOMAIN_LABELS[domain] || domain)}</span></td>` +
             `<td class="mono">${escapeHtml(r.type || '--')}</td>` +
+            `<td class="mono">${latencyHTML(r.latency_ms)}</td>` +
             `<td><span class="score ${sc}">${parseFloat(r.final_score || 0).toFixed(1)}</span></td>`;
         fragment.appendChild(tr);
     });
@@ -190,7 +202,7 @@ function renderReconTable(resources) {
             `<td><span class="domain-tag ${domain}">${escapeHtml(DOMAIN_LABELS[domain] || domain)}</span></td>` +
             `<td class="mono">${escapeHtml(r.type || '--')}</td>` +
             `<td class="mono">${parseFloat(r.rarity_score || 0).toFixed(0)}</td>` +
-            `<td class="mono">${parseFloat(r.value_score || 0).toFixed(0)}</td>` +
+            `<td class="mono">${latencyHTML(r.latency_ms)}</td>` +
             `<td><span class="score ${sc}">${parseFloat(r.final_score || 0).toFixed(1)}</span></td>` +
             `<td>${hasIntel ? '<button class="btn-view" data-id="' + r.id + '">VER</button>' : '<span style="color:var(--text-dim)">—</span>'}</td>`;
         fragment.appendChild(tr);

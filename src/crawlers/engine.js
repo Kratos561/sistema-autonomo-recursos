@@ -19,15 +19,35 @@ const JUNK_EXTENSIONS = [
     '.mp4', '.mov', '.avi', '.mp3', '.wav', '.pdf',
 ];
 
-// Palabras clave que indican que ES un recurso tecnológico real
+// Palabras clave alineadas a la Directriz Maestra SENTINEL NEXUS
+// 6 vectores: Stealth, Infra Cloud, IA Cuant, Alt Data, Algo Trading, Optimización
 const TECH_KEYWORDS = [
-    'api', 'free', 'open source', 'database', 'hosting', 'cloud',
-    'serverless', 'deploy', 'dev', 'tool', 'framework', 'library',
-    'sdk', 'cli', 'vps', 'storage', 'compute', 'gpu', 'ml', 'ai',
-    'backend', 'frontend', 'docker', 'kubernetes', 'cdn', 'dns',
-    'auth', 'oauth', 'monitoring', 'analytics', 'ci/cd', 'pipeline',
-    'no-code', 'low-code', 'saas', 'paas', 'iaas', 'tier',
-    'self-hosted', 'alternative', 'platform', 'service', 'provider',
+    // 🥷 1. Ciberseguridad, Evasión y Stealth
+    'proxy', 'stealth', 'anti-detect', 'cloudflare', 'bypass', 'puppeteer', 'playwright',
+    'scraping', 'scraper', 'rate limit', 'captcha', 'fingerprint', 'headless', 'undetectable',
+    'rotating proxy', 'residential proxy', 'turnstile',
+    // ⚡ 2. Infraestructura Cloud y DBs Gratuitas
+    'free tier', 'serverless', 'paas', 'hosting', 'cloud', 'database', 'postgresql', 'vector db',
+    'edge computing', 'deploy', 'docker', 'kubernetes', 'no credit card', 'gpu free',
+    'supabase', 'neon', 'railway', 'render', 'vercel', 'fly.io', 'coolify',
+    // 🧠 3. IA y Modelos Cuantitativos
+    'llm', 'embedding', 'huggingface', 'gguf', 'fine-tune', 'inference', 'groq', 'cerebras',
+    'transformer', 'ai api', 'machine learning', 'deep learning', 'neural network',
+    'financial llm', 'quantitative', 'prediction model',
+    // 🩸 4. Fuentes de Datos Alternativas (Alpha)
+    'websocket', 'real-time', 'market data', 'cryptocurrency', 'stocks api', 'forex',
+    'order flow', 'dark pool', 'economic calendar', 'alternative data', 'on-chain',
+    'binance api', 'coinbase api', 'exchange api', 'ohlcv', 'tick data',
+    // 🧮 5. Algoritmos y Estrategias de Trading
+    'algorithmic trading', 'algo trading', 'backtesting', 'quantitative trading',
+    'volume profile', 'order book', 'market making', 'arbitrage', 'momentum',
+    'mean reversion', 'signal', 'indicator', 'strategy', 'trading bot', 'technical analysis',
+    // ⚙️ 6. Optimización Extrema de Código
+    'low latency', 'memory leak', 'v8 optimization', 'zero-copy', 'worker threads',
+    'performance', 'benchmark', 'cache', 'node.js optimization', 'concurrency',
+    'event loop', 'garbage collection', 'buffer', 'stream processing',
+    // Cross-cutting fundamentals
+    'api', 'open source', 'free', 'sdk', 'cli', 'tool', 'framework', 'library',
 ];
 
 const HEADERS_LIST = [

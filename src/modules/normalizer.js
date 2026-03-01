@@ -20,24 +20,31 @@ function detectLanguage(text) {
 
 function detectResourceType(text, url) {
     const lowerText = (text + ' ' + url).toLowerCase();
-    if (lowerText.includes('api') || lowerText.includes('endpoint') || lowerText.includes('rest')) return 'api';
-    if (lowerText.includes('database') || lowerText.includes('db') || lowerText.includes('sql') || lowerText.includes('mongo')) return 'database';
-    if (lowerText.includes('vps') || lowerText.includes('server') || lowerText.includes('vm') || lowerText.includes('instance')) return 'vps';
-    if (lowerText.includes('compute') || lowerText.includes('gpu') || lowerText.includes('cpu')) return 'compute';
+    // Sentinel-aligned type detection
+    if (lowerText.includes('api') || lowerText.includes('endpoint') || lowerText.includes('rest') || lowerText.includes('websocket')) return 'api';
+    if (lowerText.includes('database') || lowerText.includes('db') || lowerText.includes('sql') || lowerText.includes('mongo') || lowerText.includes('vector')) return 'database';
+    if (lowerText.includes('vps') || lowerText.includes('server') || lowerText.includes('vm') || lowerText.includes('instance') || lowerText.includes('hosting')) return 'vps';
+    if (lowerText.includes('compute') || lowerText.includes('gpu') || lowerText.includes('cpu') || lowerText.includes('serverless') || lowerText.includes('edge')) return 'compute';
     if (lowerText.includes('storage') || lowerText.includes('s3') || lowerText.includes('bucket')) return 'storage';
-    if (lowerText.includes('tool') || lowerText.includes('cli') || lowerText.includes('sdk')) return 'tool';
+    if (lowerText.includes('tool') || lowerText.includes('cli') || lowerText.includes('sdk') || lowerText.includes('library') || lowerText.includes('framework')) return 'tool';
     return 'other';
 }
 
 function detectDomain(text) {
     const lowerText = (text || '').toLowerCase();
-    if (lowerText.includes('machine learning') || lowerText.includes(' ml ') || lowerText.includes('model')) return 'ml';
-    if (lowerText.includes('vision') || lowerText.includes('image') || lowerText.includes('ocr')) return 'vision';
+    // 🥷 Ciberseguridad y Stealth
+    if (/proxy|stealth|anti.?detect|cloudflare|bypass|scraping|captcha|fingerprint|headless|undetectable|turnstile|puppeteer|playwright/i.test(lowerText)) return 'security';
+    // 🧠 IA y Modelos Cuantitativos
+    if (/machine learning|llm|embedding|huggingface|gguf|fine.?tune|inference|transformer|neural|deep learning|prediction model|financial llm/i.test(lowerText)) return 'ml';
+    // 🩸 Datos Alternativos / Alpha de Mercado
+    if (/market data|cryptocurrency|stocks|forex|order flow|dark pool|economic calendar|ohlcv|tick data|on.?chain|exchange api|trading|backtesting|algo.?trad/i.test(lowerText)) return 'data';
+    // ⚙️ Optimización y DevOps
+    if (/low latency|memory leak|v8|zero.?copy|performance|benchmark|garbage collection|worker thread|optimization|ci\/cd|deploy|docker|kubernetes/i.test(lowerText)) return 'devops';
+    // ⚡ Compute y Cloud
+    if (/compute|gpu|cpu|processing|serverless|edge computing|cloud|paas|hosting/i.test(lowerText)) return 'compute';
+    // General / NLP / Vision fallback
     if (lowerText.includes('nlp') || lowerText.includes('language') || lowerText.includes('text')) return 'nlp';
-    if (lowerText.includes('compute') || lowerText.includes('gpu') || lowerText.includes('processing')) return 'compute';
-    if (lowerText.includes('data') || lowerText.includes('dataset') || lowerText.includes('analytics')) return 'data';
-    if (lowerText.includes('devops') || lowerText.includes('ci/cd') || lowerText.includes('deploy')) return 'devops';
-    if (lowerText.includes('security') || lowerText.includes('auth') || lowerText.includes('encrypt')) return 'security';
+    if (lowerText.includes('vision') || lowerText.includes('image') || lowerText.includes('ocr')) return 'vision';
     return 'general';
 }
 

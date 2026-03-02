@@ -23,15 +23,15 @@ function callAI(prompt, maxTokens = 800) {
             messages: [
                 {
                     role: 'system',
-                    content: `Eres el analista táctico del sistema SENTINEL NEXUS — una plataforma de trading algorítmico de alta frecuencia, IA y análisis cuantitativo.
+                    content: `Eres el analista de infraestructura de SENTINEL NEXUS — un sistema táctico para la "Soberanía del Cerebro DL".
 
-Tu misión es evaluar recursos tecnológicos gratuitos con un enfoque militar-táctico: determinar si cada recurso otorga una VENTAJA ASIMÉTRICA al sistema Sentinel en alguna de estas 6 áreas críticas:
-1. 🥷 Ciberseguridad / Evasión / Stealth (proxies, anti-detect, bypass)
-2. ⚡ Infraestructura Cloud / Bases de Datos gratuitas
-3. 🧠 IA / Modelos Cuantitativos / LLMs para finanzas
-4. 🩸 Fuentes de Datos Alternativos / Market Data / Alpha
-5. 🧮 Algoritmos / Estrategias de Trading / Backtesting
-6. ⚙️ Optimización Extrema de Código / Low Latency
+Tu misión es evaluar recursos y herramientas gratuitos con enfoque paramilitar: determinar si el recurso asegura cómputo GPU ininterrumpido 24/7 o poder de inferencia masivo para entrenar y ejecutar modelos de IA, analizando estas 6 áreas:
+1. 🖥️ Persistencia en Entornos de "Notebooks" (Evasión de Timeouts en Colab/Kaggle)
+2. ⚡ Inferencia Serverless y BYOM (Bring Your Own Model) gratuitos
+3. 🦾 Compute ARM de Alto Rendimiento (Oracle Cloud, inferencia CPU)
+4. 💰 Programas de Créditos GPU para Founders / Hackers (AWS, GCP, Runpod)
+5. 🐳 Entornos Docker con Aceleración por Hardware y bypassing de modos "sleep"
+6. 🎓 Grants de Cómputo e Incentivos Académicos/Open Source
 
 Escribes en español natural y conversacional como un colega senior de fintech.
 Usa emojis para estructurar pero sin exagerar. Sé brutalmente honesto.
@@ -109,10 +109,10 @@ Responde SOLO el contenido del reporte táctico, sin saludos ni despedidas.`
 
 // ── Analizar un recurso individual con informe detallado ──
 async function analyzeResource(resource) {
-    const prompt = `SENTINEL NEXUS — REPORTE TÁCTICO DE RECONOCIMIENTO
+    const prompt = `SENTINEL NEXUS — REPORTE TÁCTICO DE RECONOCIMIENTO GPU
 
-Mi sistema autónomo de recolección de inteligencia tecnológica para trading algorítmico acaba de descubrir este recurso.
-Necesito un REPORTE TÁCTICO que me diga si esto fortalece o debilita la operación de Sentinel.
+Mi radar de caza de GPUs e infraestructura profunda acaba de descubrir este recurso.
+Necesito un REPORTE TÁCTICO que me diga si esto nos da Soberanía de Cómputo para nuestras IAs.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 RECURSO INTERCEPTADO
@@ -141,14 +141,12 @@ Explica con tus propias palabras qué hace este recurso. 2-3 oraciones claras y 
 ¿Cuántas requests/día? ¿Cuántos GB? ¿Cuántos tokens? ¿Requiere tarjeta de crédito? Sé lo más específico posible con los números. Si no se conocen, dilo.
 
 🎯 **¿CÓMO ESTO MEJORA O FORTIFICA SENTINEL?**
-Esto es lo MÁS IMPORTANTE. Analiza el recurso en el contexto de un sistema de trading algorítmico que necesita:
-- Scraping sigiloso de datos de mercado
-- Base de datos PostgreSQL rápida para datos cuantitativos
-- Ejecución de órdenes con baja latencia
-- IA para análisis de señales y predicción
-- Fuentes de datos alternativas (order flow, dark pools, etc.)
-- Backtesting y estrategias cuantitativas
-Di explícitamente en cuál de las 6 categorías Sentinel encaja y POR QUÉ es útil.
+Esto es lo MÁS IMPORTANTE. Analiza el recurso en el contexto de la "Soberanía del Cerebro DL" que necesita:
+- Ejecutar contenedores o notebooks GPU 24/7 sin que se cierren por inactividad.
+- Conseguir decenas de miles de créditos gratuitos en nubes para GPUs P4, T4, L4, A100 o H100.
+- Servir Endpoints de Inferencia Serverless veloces coste $0.
+- Esquivar los detectores de minería y abuso de "Free Tiers".
+Di explícitamente a cuál de nuestras 6 sub-áreas GPU (Notebooks, Serverless, ARM, Créditos, Docker, Grants) aporta valor.
 
 💻 **FRAGMENTO DE CÓDIGO DE INTEGRACIÓN**
 Proporciona un snippet de código viable (Node.js o Python) que demuestre cómo conectar o probar este recurso. Debe ser funcional, no pseudo-código.

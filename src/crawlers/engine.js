@@ -19,35 +19,55 @@ const JUNK_EXTENSIONS = [
     '.mp4', '.mov', '.avi', '.mp3', '.wav', '.pdf',
 ];
 
-// Palabras clave alineadas a la Directriz Maestra SENTINEL NEXUS
-// 6 vectores: Stealth, Infra Cloud, IA Cuant, Alt Data, Algo Trading, Optimización
+// ══════════════════════════════════════════════════════════════
+// 🧠 CATEGORÍA 7: SOBERANÍA DEL CEREBRO DL
+// GPU 24/7, Keep-Alive, Serverless BYOM, ARM, Créditos y Grants
+// ══════════════════════════════════════════════════════════════
 const TECH_KEYWORDS = [
-    // 🥷 1. Ciberseguridad, Evasión y Stealth
-    'proxy', 'stealth', 'anti-detect', 'cloudflare', 'bypass', 'puppeteer', 'playwright',
-    'scraping', 'scraper', 'rate limit', 'captcha', 'fingerprint', 'headless', 'undetectable',
-    'rotating proxy', 'residential proxy', 'turnstile',
-    // ⚡ 2. Infraestructura Cloud y DBs Gratuitas
-    'free tier', 'serverless', 'paas', 'hosting', 'cloud', 'database', 'postgresql', 'vector db',
-    'edge computing', 'deploy', 'docker', 'kubernetes', 'no credit card', 'gpu free',
-    'supabase', 'neon', 'railway', 'render', 'vercel', 'fly.io', 'coolify',
-    // 🧠 3. IA y Modelos Cuantitativos
-    'llm', 'embedding', 'huggingface', 'gguf', 'fine-tune', 'inference', 'groq', 'cerebras',
-    'transformer', 'ai api', 'machine learning', 'deep learning', 'neural network',
-    'financial llm', 'quantitative', 'prediction model',
-    // 🩸 4. Fuentes de Datos Alternativas (Alpha)
-    'websocket', 'real-time', 'market data', 'cryptocurrency', 'stocks api', 'forex',
-    'order flow', 'dark pool', 'economic calendar', 'alternative data', 'on-chain',
-    'binance api', 'coinbase api', 'exchange api', 'ohlcv', 'tick data',
-    // 🧮 5. Algoritmos y Estrategias de Trading
-    'algorithmic trading', 'algo trading', 'backtesting', 'quantitative trading',
-    'volume profile', 'order book', 'market making', 'arbitrage', 'momentum',
-    'mean reversion', 'signal', 'indicator', 'strategy', 'trading bot', 'technical analysis',
-    // ⚙️ 6. Optimización Extrema de Código
-    'low latency', 'memory leak', 'v8 optimization', 'zero-copy', 'worker threads',
-    'performance', 'benchmark', 'cache', 'node.js optimization', 'concurrency',
-    'event loop', 'garbage collection', 'buffer', 'stream processing',
-    // Cross-cutting fundamentals
-    'api', 'open source', 'free', 'sdk', 'cli', 'tool', 'framework', 'library',
+    // 🖥️ A. Persistencia en Notebooks (Evasión de Timeouts)
+    'keep-alive', 'keepalive', 'colab', 'google colab', 'kaggle', 'sagemaker', 'paperspace',
+    'gradient', 'notebook', 'idle timeout', 'session timeout', 'colab pro',
+    'ngrok', 'cloudflare tunnel', 'cloudflared', 'tailscale', 'grpc', 'fastapi',
+    'tunnel', 'anti-idle', 'idle prevention', 'auto reconnect', 'persistent session',
+    'inference server', 'model server', 'triton', 'torchserve',
+
+    // ⚡ B. Inferencia Serverless con Capas Gratuitas (BYOM)
+    'fal.ai', 'fal ai', 'together ai', 'togetherai', 'modal', 'modal labs',
+    'hugging face', 'huggingface', 'inference endpoint', 'bring your own model', 'byom',
+    'cold start', 'warm start', 'serverless inference', 'inference api',
+    'replicate', 'beam', 'baseten', 'lepton', 'fireworks ai', 'anyscale',
+    'free inference', 'free gpu credits', 'pytorch', 'jax', 'triton inference',
+
+    // 🦾 C. Instancias ARM de Alto Rendimiento (Oracle Always Free)
+    'oracle cloud', 'oracle free', 'ampere a1', 'arm instance', 'always free',
+    'openvino', 'onnx runtime', 'onnx', 'quantization', 'cpu inference', 'arm64',
+    'aarch64', 'graviton', 'neon optimization', 'model optimization', 'int8',
+    'fp16', 'bfloat16', 'neural compressor', 'prune', 'distillation',
+
+    // 💰 D. Cosecha de Créditos GPU (Founders & Hackers)
+    'lambda labs', 'runpod', 'vast.ai', 'vast ai', 'gpu credits', 'free credits',
+    'gpu cloud', '$300 free', '$200 free', 'founders credit', 'startup credit',
+    'developer credit', 'early access gpu', 'beta gpu', 'a100', 'h100', 'l4 gpu', 't4 gpu',
+    'v100', 'rtx 4090', 'a10g', 'compute credit', 'cloud credit grant',
+    'nvidia gpu free', 'gpu trial', 'coreweave', 'massed compute',
+
+    // 🐳 E. Docker con Aceleración de Hardware + No Sleep
+    'docker gpu', 'nvidia container', 'cuda container', 'hardware acceleration',
+    'no sleep', 'prevent sleep', 'container keep alive', 'render free tier',
+    'railway gpu', 'fly.io gpu', 'zero downtime', 'always on', '24/7 inference',
+    'gpu docker', 'nvidia docker', 'cuda docker', 'gpu paas',
+
+    // 🎓 F. Subvenciones y Becas de Cómputo (Sin empresa requerida)
+    'azure for startups', 'google for startups', 'aws activate', 'startup program',
+    'compute grant', 'research grant', 'open source credits', 'github credits',
+    'github student', 'education credits', 'hackathon gpu', 'compute subsidy',
+    'accelerator program', 'incubator cloud', 'tech for good', 'developer program',
+    'startup equity free', 'solo founder', 'indie hacker', 'open source grant',
+
+    // 🔧 Términos de soporte técnico transversales
+    'gpu free', 'free gpu', 'gpu inference', 'deep learning', 'neural network',
+    'model weights', 'checkpoint', 'fine-tune', 'lora', 'qlora', 'llm free',
+    'diffusion model', 'stable diffusion', 'llama', 'mistral', 'phi', 'gemma',
 ];
 
 const HEADERS_LIST = [

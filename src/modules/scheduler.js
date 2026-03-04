@@ -87,7 +87,7 @@ async function runPipeline() {
                        tech_summary, rarity_score, value_score, risk_score, final_score,
                        notification_hash
                 FROM resources 
-                WHERE final_score > 0
+                WHERE final_score >= 40
                   AND (
                     telegram_notified_at IS NULL
                     OR (updated_at > telegram_notified_at AND last_changed > telegram_notified_at)
@@ -98,60 +98,80 @@ async function runPipeline() {
 
             let notifiedCount = 0;
             for (const resource of newVIPs.rows) {
-                // Generar hash actual del recurso
-                const currentHash = generateResourceHash(resource);
+                try {
+                    // Generar hash actual del recurso
+                    const currentHash = generateResourceHash(resource);
 
-                // Si ya fue notificado con el mismo hash, saltar (anti-duplicado)
-                if (resource.notification_hash === currentHash) {
-                    console.log(`[Telegram] ⏭️ Saltando (sin cambios): ${resource.name}`);
-                    continue;
+                    // Si ya fue notificado con el mismo hash, saltar (anti-duplicado)
+                    if (resource.notification_hash === currentHash) {
+                        console.log(`[Telegram] ⏭️ Saltando (sin cambios): ${resource.name}`);
+                        continue;
+                    }
+
+                    // Construir mensaje con informe de IA si existe
+                    let message = `🚨 <b>RECURSO DESCUBIERTO</b>\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+                    const scoreEmoji = resource.final_score >= 80 ? '💎' :
+                        resource.final_score >= 60 ? '🔥' :
+                            resource.final_score >= 40 ? '⭐' : '📌';
+
+                    message += `${scoreEmoji} <b>${resource.name}</b>\n`;
+                    message += `📊 Score: <b>${resource.final_score}/100</b>\n`;
+                    message += `🏷️ ${resource.type || 'otro'} | ${resource.domain || 'general'}\n`;
+                    message += `🔗 <a href="${resource.url}">${resource.url}</a>\n`;
+
+                    // Si hay análisis de IA, agregarlo
+                    if (resource.tech_summary) {
+                        message += `\n🧠 <b>Informe IA:</b>\n`;
+                        // Limpiar markdown y escapar HTML para Telegram
+                        const cleanSummary = resource.tech_summary
+                            .replace(/\*\*/g, '')
+                            .replace(/\*/g, '')
+                            .replace(/#{1,3}\s/g, '')
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .substring(0, 800);
+                        message += cleanSummary;
+                    }
+
+                    // Si fue re-descubierto (tenía notificación previa), indicarlo
+                    if (resource.notification_hash && resource.notification_hash !== currentHash) {
+                        message += `\n\n🔄 <i>Actualización: Este recurso cambió desde la última vez.</i>`;
+                    }
+
+                    await sendMessage(message);
+                    notifiedCount++;
+
+                    // Marcar como notificado con su hash actual
+                    await pool.query(
+                        `UPDATE resources SET telegram_notified_at = NOW(), notification_hash = $1 WHERE id = $2`,
+                        [currentHash, resource.id]
+                    );
+
+                    // Pausa para rate limits de Telegram
+                    await new Promise(r => setTimeout(r, 1500));
+                } catch (loopErr) {
+                    console.error(`[Telegram] ⚠️ Error enviando recurso ${resource.name}:`, loopErr.message);
+                    // Actualizar para que no se quede pegado intentando enviar este recurso todo el tiempo
+                    await pool.query(
+                        `UPDATE resources SET telegram_notified_at = NOW(), notification_hash = 'ERROR' WHERE id = $1`,
+                        [resource.id]
+                    );
                 }
-
-                // Construir mensaje con informe de IA si existe
-                let message = `🚨 <b>RECURSO DESCUBIERTO</b>\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-                const scoreEmoji = resource.final_score >= 80 ? '💎' :
-                    resource.final_score >= 60 ? '🔥' :
-                        resource.final_score >= 40 ? '⭐' : '📌';
-
-                message += `${scoreEmoji} <b>${resource.name}</b>\n`;
-                message += `📊 Score: <b>${resource.final_score}/100</b>\n`;
-                message += `🏷️ ${resource.type || 'otro'} | ${resource.domain || 'general'}\n`;
-                message += `🔗 <a href="${resource.url}">${resource.url}</a>\n`;
-
-                // Si hay análisis de IA, agregarlo
-                if (resource.tech_summary) {
-                    message += `\n🧠 <b>Informe IA:</b>\n`;
-                    // Limpiar markdown para HTML de Telegram
-                    const cleanSummary = resource.tech_summary
-                        .replace(/\*\*/g, '')
-                        .replace(/\*/g, '')
-                        .replace(/#{1,3}\s/g, '')
-                        .substring(0, 800);
-                    message += cleanSummary;
-                }
-
-                // Si fue re-descubierto (tenía notificación previa), indicarlo
-                if (resource.notification_hash && resource.notification_hash !== currentHash) {
-                    message += `\n\n🔄 <i>Actualización: Este recurso cambió desde la última vez.</i>`;
-                }
-
-                await sendMessage(message);
-                notifiedCount++;
-
-                // Marcar como notificado con su hash actual
-                await pool.query(
-                    `UPDATE resources SET telegram_notified_at = NOW(), notification_hash = $1 WHERE id = $2`,
-                    [currentHash, resource.id]
-                );
-
-                // Pausa para rate limits de Telegram
-                await new Promise(r => setTimeout(r, 1500));
             }
 
             // Enviar informe batch de IA si existe
             if (aiReport) {
-                const reportMsg = `🧠 <b>INFORME DE INTELIGENCIA ARTIFICIAL</b>\n━━━━━━━━━━━━━━━━━━━━━━\n\n${aiReport.replace(/\*\*/g, '').replace(/\*/g, '').replace(/#{1,3}\s/g, '').substring(0, 3500)}`;
+                const cleanReport = aiReport
+                    .replace(/\*\*/g, '')
+                    .replace(/\*/g, '')
+                    .replace(/#{1,3}\s/g, '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .substring(0, 3500);
+                const reportMsg = `🧠 <b>INFORME DE INTELIGENCIA ARTIFICIAL</b>\n━━━━━━━━━━━━━━━━━━━━━━\n\n${cleanReport}`;
                 await sendMessage(reportMsg);
             }
 

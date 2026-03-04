@@ -68,7 +68,10 @@ function formatResourceMessage(resource) {
         'active': '🟢', 'degraded': '🟡', 'dead': '🔴', 'unknown': '⚪'
     };
 
-    return `${scoreEmoji} <b>${resource.name}</b>
+    const cleanDesc = resource.description ? resource.description.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 200) : '';
+    const cleanFreeTier = resource.free_tier ? resource.free_tier.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 150) : '';
+
+    return `${scoreEmoji} <b>${resource.name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</b>
 
 ${statusEmoji[resource.status] || '⚪'} Estado: ${resource.status || 'unknown'}
 📊 Score: <b>${resource.final_score}/100</b>
@@ -79,7 +82,7 @@ ${statusEmoji[resource.status] || '⚪'} Estado: ${resource.status || 'unknown'}
 ${typeEmoji[resource.type] || '📦'} Tipo: ${resource.type || 'other'}
 🏷️ Dominio: ${resource.domain || 'general'}
 
-${resource.description ? `📝 ${resource.description.substring(0, 200)}${resource.description.length > 200 ? '...' : ''}\n` : ''}${resource.free_tier ? `🆓 Free Tier: ${resource.free_tier.substring(0, 150)}\n` : ''}
+${resource.description ? `📝 ${cleanDesc}${resource.description.length > 200 ? '...' : ''}\n` : ''}${resource.free_tier ? `🆓 Free Tier: ${cleanFreeTier}\n` : ''}
 🔗 <a href="${resource.url}">${resource.url}</a>`;
 }
 

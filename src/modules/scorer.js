@@ -69,6 +69,21 @@ function calculateValue(resource) {
         if (text.includes(kw)) { value += 8; break; }
     }
 
+    // 🚀 CATEGORÍA 7: SOBERANÍA DEL CEREBRO DL (MASSIVE BOOST)
+    const dlKeywords = [
+        'gpu', 'colab', 'notebook', 'nvidia', 'cuda', 'inference', 'serverless',
+        'docker', 'huggingface', 'llm', 'ollama', 'stable diffusion', 'tensor', 'pytorch',
+        'kaggle', 'sagemaker', 'compute', 't4', 'a100', 'l4', 'h100', 'runpod', 'lambda'
+    ];
+    let dlHits = 0;
+    for (const kw of dlKeywords) {
+        if (text.includes(kw) || resource.url?.toLowerCase().includes(kw)) {
+            dlHits++;
+            value += 30; // Boost masivo por cada coincidencia
+        }
+    }
+    if (dlHits > 0) value += 20; // Bonus extra si encaja en la tesis DL
+
     // No requiere tarjeta = más accesible
     if (!resource.credit_card) value += 10;
 
@@ -96,7 +111,12 @@ function calculateRisk(resource) {
     if (resource.url?.match(/\.(xyz|club|icu|top|buzz|cam)\//)) risk += 30;
 
     // Sin descripción = no sabemos qué es
-    if (!resource.description || resource.description.length < 10) risk += 20;
+    // Excepción: Si es de github normal o menciona github, a veces no hay mucha desc
+    if (!resource.description || resource.description.length < 10) {
+        if (!resource.url?.includes('github.com')) {
+            risk += 20;
+        }
+    }
 
     // Keywords de riesgo
     const riskKeywords = ['trial', 'expires', 'limited time', 'beta only', 'deprecated', 'shutdown'];
@@ -138,7 +158,18 @@ async function evaluateResources() {
             const rarity = calculateRarity(resource);
             const value = calculateValue(resource);
             const risk = calculateRisk(resource);
-            const finalScore = calculateFinalScore(rarity, value, risk);
+            let finalScore = calculateFinalScore(rarity, value, risk);
+
+            // 🚀 BOOST INCONDICIONAL CATEGORÍA 7 PARA ASEGURAR VIP (≥60) 🚀
+            const text = `${resource.name || ''} ${resource.description || ''} ${resource.free_tier || ''}`.toLowerCase();
+            const url = (resource.url || '').toLowerCase();
+            const dlKeywords = ['gpu', 'colab', 'notebook', 'nvidia', 'cuda', 'docker', 'huggingface', 'serverless', 'inference', 'ollama'];
+            const hasDL = dlKeywords.some(kw => text.includes(kw) || url.includes(kw));
+
+            if (hasDL) {
+                finalScore += 25; // Salta de 57.5 directly a 82.5 (Super VIP)
+                finalScore = Math.min(finalScore, 100);
+            }
 
             await pool.query(
                 `UPDATE resources SET

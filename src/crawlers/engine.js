@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const pool = require('../db/pool');
 
 const TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT_MS) || 15000;
+const MAX_DEEP_DEPTH = parseInt(process.env.DEEP_CRAWL_DEPTH) || 3;
 
 // URLs basura que NO son recursos tecnológicos reales
 const JUNK_DOMAINS = [
@@ -11,12 +12,15 @@ const JUNK_DOMAINS = [
     'twitter.com', 'x.com', 'reddit.com', 'redd.it',
     'facebook.com', 'instagram.com', 'tiktok.com',
     'amazon.com', 'ebay.com', 'aliexpress.com',
+    'linkedin.com', 'pinterest.com', 'medium.com',
+    'docs.google.com', 'drive.google.com', 'play.google.com',
+    'apps.apple.com', 'support.google.com',
 ];
 
 // Extensiones de archivos que NO son recursos tech
 const JUNK_EXTENSIONS = [
     '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp',
-    '.mp4', '.mov', '.avi', '.mp3', '.wav', '.pdf',
+    '.mp4', '.mov', '.avi', '.mp3', '.wav', '.pdf', '.zip', '.tar.gz',
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -68,6 +72,8 @@ const TECH_KEYWORDS = [
     'gpu free', 'free gpu', 'gpu inference', 'deep learning', 'neural network',
     'model weights', 'checkpoint', 'fine-tune', 'lora', 'qlora', 'llm free',
     'diffusion model', 'stable diffusion', 'llama', 'mistral', 'phi', 'gemma',
+    'ollama', 'vllm', 'text generation', 'transformers', 'machine learning',
+    'tensorflow', 'self-hosted', 'open source', 'mlops', 'ml pipeline',
 ];
 
 const HEADERS_LIST = [
@@ -78,6 +84,18 @@ const HEADERS_LIST = [
 
 function getRandomHeaders() {
     return { ...HEADERS_LIST[Math.floor(Math.random() * HEADERS_LIST.length)], 'Accept': 'text/html,application/xhtml+xml,*/*;q=0.8', 'Accept-Language': 'en-US,en;q=0.5' };
+}
+
+// ══════════════════════════════════════════════
+// 🔥 GLOBAL DEEP CRAWL TRACKER
+// Evita visitar la misma URL dos veces en toda la sesión
+// ══════════════════════════════════════════════
+const globalVisited = new Set();
+let deepCrawlStats = { level1: 0, level2: 0, level3: 0, total: 0 };
+
+function resetDeepCrawlStats() {
+    globalVisited.clear();
+    deepCrawlStats = { level1: 0, level2: 0, level3: 0, total: 0 };
 }
 
 // ── Verificar si una URL es un recurso real ─────────────
@@ -115,13 +133,270 @@ async function fetchPage(url) {
         });
         return { html: response.data, status: response.status };
     } catch (err) {
-        console.error(`[Crawler] Error fetching ${url}:`, err.message);
+        // Solo logear si no es un timeout común
+        if (!err.message.includes('timeout')) {
+            console.error(`[Crawler] Error fetching ${url}:`, err.message?.substring(0, 80));
+        }
         return null;
     }
 }
 
+// ══════════════════════════════════════════════════════════════
+// 🔥 DEEP RESEARCH ENGINE — Nivel 2 y 3
+// ══════════════════════════════════════════════════════════════
+
+// ── Deep Crawl: Seguir un link y extraer SUB-RECURSOS ───
+async function deepCrawlUrl(url, depth = 1, parentName = '') {
+    if (depth > MAX_DEEP_DEPTH) return [];
+    if (globalVisited.has(url)) return [];
+    globalVisited.add(url);
+
+    const depthLabel = depth === 1 ? '🟢 L1' : depth === 2 ? '🟡 L2' : '🔴 L3';
+    console.log(`[DeepCrawl] ${depthLabel} Excavando: ${url.substring(0, 80)}...`);
+
+    const resources = [];
+
+    try {
+        // ── Si es un repo de GitHub, extraer README profundo ──
+        if (url.includes('github.com') && !url.includes('/blob/') && !url.includes('/tree/')) {
+            const subResources = await deepCrawlGitHubRepo(url, depth, parentName);
+            resources.push(...subResources);
+        }
+        // ── Si es un sitio web normal, extraer links tech ──
+        else {
+            const subResources = await deepCrawlWebPage(url, depth, parentName);
+            resources.push(...subResources);
+        }
+    } catch (err) {
+        console.error(`[DeepCrawl] Error en ${url}:`, err.message?.substring(0, 80));
+    }
+
+    // Contabilizar
+    if (depth === 1) deepCrawlStats.level1 += resources.length;
+    else if (depth === 2) deepCrawlStats.level2 += resources.length;
+    else deepCrawlStats.level3 += resources.length;
+    deepCrawlStats.total += resources.length;
+
+    return resources;
+}
+
+// ── Deep Crawl: Repo de GitHub (seguir README links) ─────
+async function deepCrawlGitHubRepo(url, depth, parentName) {
+    const resources = [];
+
+    try {
+        const parts = new URL(url).pathname.split('/').filter(Boolean);
+        if (parts.length < 2) return [];
+
+        const owner = parts[0];
+        const repo = parts[1];
+
+        // 1. Intentar obtener info del repo vía API de GitHub
+        let repoInfo = null;
+        try {
+            const apiResponse = await axios.get(`https://api.github.com/repos/${owner}/${repo}`, {
+                headers: { 'User-Agent': 'SentinelNexus/2.0', 'Accept': 'application/vnd.github.v3+json' },
+                timeout: TIMEOUT,
+            });
+            repoInfo = apiResponse.data;
+        } catch { /* API rate-limited, no pasa nada */ }
+
+        // Guardar el repo como recurso principal con la descripción de GitHub
+        const repoDescription = repoInfo?.description || '';
+        const repoStars = repoInfo?.stargazers_count || 0;
+        const repoTopics = repoInfo?.topics?.join(', ') || '';
+
+        if (looksLikeTechResource(`${parentName} ${repo}`, `${repoDescription} ${repoTopics}`)) {
+            resources.push({
+                name: `${owner}/${repo}`,
+                url: url,
+                description: `⭐ ${repoStars} | ${repoDescription} | Topics: ${repoTopics}`.substring(0, 1000),
+                source_url: url,
+                source_type: 'github-deep',
+            });
+        }
+
+        // 2. Descargar README y extraer TODOS los links (no solo los de fuera de GitHub!)
+        let readme = '';
+        try {
+            const readmeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/README.md`;
+            const resp = await axios.get(readmeUrl, { headers: getRandomHeaders(), timeout: TIMEOUT });
+            readme = resp.data;
+        } catch {
+            try {
+                const readmeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/master/README.md`;
+                const resp = await axios.get(readmeUrl, { headers: getRandomHeaders(), timeout: TIMEOUT });
+                readme = resp.data;
+            } catch { /* Sin README */ }
+        }
+
+        if (readme) {
+            const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
+            let match;
+            const seen = new Set();
+            let linkCount = 0;
+
+            while ((match = linkRegex.exec(readme)) !== null) {
+                const linkName = match[1].trim();
+                const linkUrl = match[2].trim();
+
+                if (seen.has(linkUrl)) continue;
+                if (!isValidResourceUrl(linkUrl) && !linkUrl.includes('github.com')) continue;
+                if (linkName.length < 3) continue;
+                seen.add(linkUrl);
+
+                // ¡¡¡ AHORA SÍ SEGUIMOS LINKS DE GITHUB !!! (antes se ignoraban)
+                if (looksLikeTechResource(linkName, '')) {
+                    resources.push({
+                        name: linkName.substring(0, 255),
+                        url: linkUrl,
+                        description: `Encontrado en README de ${owner}/${repo}`.substring(0, 1000),
+                        source_url: url,
+                        source_type: 'github-deep',
+                    });
+                    linkCount++;
+
+                    // 🔥 RECURSIÓN NIVEL 2→3: Si es un link de GitHub, seguirlo también
+                    if (linkUrl.includes('github.com') && depth < MAX_DEEP_DEPTH && linkCount <= 10) {
+                        await new Promise(r => setTimeout(r, 1500)); // Rate limit
+                        const subLinks = await deepCrawlUrl(linkUrl, depth + 1, linkName);
+                        resources.push(...subLinks);
+                    }
+                }
+
+                // Limitar para no ser bloqueados
+                if (linkCount >= 50) break;
+            }
+
+            console.log(`[DeepCrawl] 📋 ${linkCount} links tech extraídos del README de ${owner}/${repo}`);
+        }
+
+        // 3. También extraer repos "relacionados" vía API de GitHub
+        if (repoTopics && depth < MAX_DEEP_DEPTH) {
+            try {
+                const topicSearch = repoInfo?.topics?.slice(0, 2).join('+') || '';
+                if (topicSearch) {
+                    const searchResp = await axios.get(
+                        `https://api.github.com/search/repositories?q=${topicSearch}+stars:>100&sort=stars&per_page=5`,
+                        { headers: { 'User-Agent': 'SentinelNexus/2.0' }, timeout: TIMEOUT }
+                    );
+                    for (const item of searchResp.data?.items || []) {
+                        if (globalVisited.has(item.html_url)) continue;
+                        if (looksLikeTechResource(item.full_name, item.description || '')) {
+                            resources.push({
+                                name: item.full_name,
+                                url: item.html_url,
+                                description: `⭐ ${item.stargazers_count} | ${item.description || ''} | Topics: ${(item.topics || []).join(', ')}`.substring(0, 1000),
+                                source_url: url,
+                                source_type: 'github-related',
+                            });
+                        }
+                    }
+                }
+            } catch { /* API limit, no pasa nada */ }
+        }
+    } catch (err) {
+        console.error(`[DeepCrawl GitHub] Error en ${url}:`, err.message?.substring(0, 80));
+    }
+
+    return resources;
+}
+
+// ── Deep Crawl: Página web genérica (extraer sub-links) ──
+async function deepCrawlWebPage(url, depth, parentName) {
+    const resources = [];
+
+    try {
+        const result = await fetchPage(url);
+        if (!result) return [];
+
+        const $ = cheerio.load(result.html);
+        const seen = new Set();
+        let linkCount = 0;
+
+        // Extraer TÍTULO de la página para contexto
+        const pageTitle = $('title').first().text().trim() || '';
+        const pageDesc = $('meta[name="description"]').attr('content') || '';
+
+        // Extraer TODOS los links de la página
+        $('a[href]').each((_, el) => {
+            const href = $(el).attr('href');
+            const linkText = $(el).text().trim();
+
+            if (!href || !linkText || linkText.length < 3) return;
+
+            let fullUrl = href;
+            if (!href.startsWith('http')) {
+                try { fullUrl = new URL(href, url).toString(); } catch { return; }
+            }
+
+            if (seen.has(fullUrl)) return;
+            if (!isValidResourceUrl(fullUrl) && !fullUrl.includes('github.com')) return;
+
+            const context = `${linkText} ${$(el).attr('title') || ''} ${pageTitle}`;
+            if (looksLikeTechResource(context, pageDesc)) {
+                seen.add(fullUrl);
+
+                // Extraer contexto circundante del link
+                const surrounding = $(el).closest('li, div, article, tr, p').text().trim().substring(0, 500);
+
+                resources.push({
+                    name: linkText.substring(0, 255),
+                    url: fullUrl,
+                    description: `${surrounding}`.substring(0, 1000),
+                    source_url: url,
+                    source_type: `web-deep-L${depth}`,
+                });
+                linkCount++;
+            }
+        });
+
+        // 🔥 NIVEL 3: Seguir links internos de la página que parezcan categorías/listas
+        if (depth < MAX_DEEP_DEPTH && linkCount > 0) {
+            const internalLinks = [];
+            $('a[href]').each((_, el) => {
+                const href = $(el).attr('href');
+                const text = $(el).text().trim().toLowerCase();
+                if (!href) return;
+
+                let fullUrl = href;
+                if (!href.startsWith('http')) {
+                    try { fullUrl = new URL(href, url).toString(); } catch { return; }
+                }
+
+                // Seguir links que parezcan categorías, listas o secciones de recursos
+                const isDeepWorthy = ['gpu', 'compute', 'free', 'pricing', 'resources', 'tools',
+                    'awesome', 'alternatives', 'open-source', 'self-hosted', 'infrastructure',
+                    'cloud', 'credits', 'grants', 'deploy', 'docker', 'notebook'].some(kw =>
+                        text.includes(kw) || fullUrl.toLowerCase().includes(kw)
+                    );
+
+                if (isDeepWorthy && !globalVisited.has(fullUrl) && isValidResourceUrl(fullUrl)) {
+                    internalLinks.push(fullUrl);
+                }
+            });
+
+            // Seguir máximo 5 sub-links por página
+            for (const link of internalLinks.slice(0, 5)) {
+                await new Promise(r => setTimeout(r, 2000)); // Rate limit
+                const subResources = await deepCrawlUrl(link, depth + 1, pageTitle);
+                resources.push(...subResources);
+            }
+        }
+
+        console.log(`[DeepCrawl Web] 🌐 ${linkCount} links tech en ${url.substring(0, 60)}`);
+    } catch (err) {
+        console.error(`[DeepCrawl Web] Error:`, err.message?.substring(0, 80));
+    }
+
+    return resources;
+}
+
+// ══════════════════════════════════════════════════════════════
+// CRAWLERS CLÁSICOS (Nivel 1) — Ahora con Deep Research
+// ══════════════════════════════════════════════════════════════
+
 // ── Crawler para Reddit JSON API ────────────────────────
-// Ahora extrae LINKS EXTERNOS, no las URLs de los posts de Reddit
 async function crawlReddit(url) {
     try {
         const jsonUrl = url.endsWith('.json') ? url : `${url}.json`;
@@ -141,7 +416,7 @@ async function crawlReddit(url) {
             const isTech = looksLikeTechResource(data.title, data.selftext || '');
             if (!isTech) continue;
 
-            // PRIORIDAD 1: Link externo directo del post (no self-posts ni imágenes)
+            // PRIORIDAD 1: Link externo directo del post
             if (data.url && !data.is_self && isValidResourceUrl(data.url)) {
                 resources.push({
                     name: data.title.substring(0, 255),
@@ -150,6 +425,13 @@ async function crawlReddit(url) {
                     source_url: `https://reddit.com${data.permalink}`,
                     source_type: 'reddit',
                 });
+
+                // 🔥 DEEP: Seguir el link externo al Nivel 2
+                if (data.url.includes('github.com')) {
+                    await new Promise(r => setTimeout(r, 2000));
+                    const deepResources = await deepCrawlUrl(data.url, 2, data.title);
+                    resources.push(...deepResources);
+                }
                 continue;
             }
 
@@ -159,9 +441,8 @@ async function crawlReddit(url) {
                 const foundUrls = data.selftext.match(urlRegex) || [];
 
                 for (const foundUrl of foundUrls) {
-                    // Limpiar URL (quitar trailing punctuation)
                     const cleanUrl = foundUrl.replace(/[.,;:!?)]+$/, '');
-                    if (isValidResourceUrl(cleanUrl)) {
+                    if (isValidResourceUrl(cleanUrl) || cleanUrl.includes('github.com')) {
                         resources.push({
                             name: data.title.substring(0, 255),
                             url: cleanUrl,
@@ -169,6 +450,13 @@ async function crawlReddit(url) {
                             source_url: `https://reddit.com${data.permalink}`,
                             source_type: 'reddit',
                         });
+
+                        // 🔥 DEEP: Seguir links de GitHub al Nivel 2
+                        if (cleanUrl.includes('github.com') && !globalVisited.has(cleanUrl)) {
+                            await new Promise(r => setTimeout(r, 2000));
+                            const deepResources = await deepCrawlUrl(cleanUrl, 2, data.title);
+                            resources.push(...deepResources);
+                        }
                         break; // Solo el primer link válido por post
                     }
                 }
@@ -182,19 +470,15 @@ async function crawlReddit(url) {
     }
 }
 
-// ── Crawler para GitHub (usando API pública) ────────────
+// ── Crawler para GitHub ────────────────────────────────
 async function crawlGitHub(url) {
     try {
-        // Si es la página de trending, scrapeamos el HTML
         if (url.includes('/trending') || url.includes('/topics')) {
             return await crawlGitHubHTML(url);
         }
-
-        // Si es un repo específico con listas de APIs (como public-apis)
         if (url.includes('public-apis/public-apis') || url.includes('free-for')) {
             return await crawlResourceList(url);
         }
-
         return await crawlGitHubHTML(url);
     } catch (err) {
         console.error('[Crawler GitHub] Error:', err.message);
@@ -202,7 +486,7 @@ async function crawlGitHub(url) {
     }
 }
 
-// Crawl GitHub trending/topics page
+// Crawl GitHub trending/topics page + DEEP RESEARCH en cada repo
 async function crawlGitHubHTML(url) {
     try {
         const result = await fetchPage(url);
@@ -212,7 +496,6 @@ async function crawlGitHubHTML(url) {
         const resources = [];
         const seen = new Set();
 
-        // Buscar repos en trending
         $('article.Box-row h2 a, h3 a[href*="/"]').each((_, el) => {
             const href = $(el).attr('href');
             if (!href || seen.has(href)) return;
@@ -222,7 +505,6 @@ async function crawlGitHubHTML(url) {
 
             if (name && href.split('/').length >= 3) {
                 seen.add(href);
-                // Extraer descripción del repo si existe
                 const desc = $(el).closest('article, .Box-row, li').find('p').first().text().trim();
 
                 resources.push({
@@ -235,17 +517,31 @@ async function crawlGitHubHTML(url) {
             }
         });
 
-        return resources.slice(0, 30);
+        const level1 = resources.slice(0, 30);
+
+        // 🔥 DEEP RESEARCH: Seguir CADA repo al Nivel 2
+        const allResources = [...level1];
+        let deepCount = 0;
+        for (const resource of level1) {
+            if (deepCount >= 10) break; // Max 10 repos profundos por fuente
+            if (looksLikeTechResource(resource.name, resource.description)) {
+                await new Promise(r => setTimeout(r, 2000)); // Rate limit
+                const deepResources = await deepCrawlUrl(resource.url, 2, resource.name);
+                allResources.push(...deepResources);
+                deepCount++;
+            }
+        }
+
+        return allResources;
     } catch (err) {
         console.error('[Crawler GitHub HTML] Error:', err.message);
         return [];
     }
 }
 
-// Crawl repos que contienen listas de recursos (como awesome-x, public-apis)
+// Crawl listas "awesome-x" — AHORA SIGUE LINKS DE GITHUB 🔥
 async function crawlResourceList(url) {
     try {
-        // Intentar obtener el README del repo
         const parts = new URL(url).pathname.split('/').filter(Boolean);
         if (parts.length < 2) return [];
 
@@ -262,20 +558,20 @@ async function crawlResourceList(url) {
         const resources = [];
         const seen = new Set();
 
-        // Extraer links de formato markdown: [nombre](url)
         const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
         let match;
+        let deepFollowed = 0;
 
         while ((match = linkRegex.exec(readme)) !== null) {
             const name = match[1].trim();
             const linkUrl = match[2].trim();
 
             if (seen.has(linkUrl)) continue;
-            if (!isValidResourceUrl(linkUrl)) continue;
-            // Ignorar links a otros repos github (queremos los links a las tools reales)
-            if (linkUrl.includes('github.com') && !linkUrl.includes('github.com/apps')) continue;
-            // Ignorar links cortos sin nombre real
             if (name.length < 3) continue;
+
+            // 🔥 CAMBIO CRÍTICO: YA NO IGNORAMOS LINKS DE GITHUB
+            // Antes: if (linkUrl.includes('github.com')) continue; ← ESTO MATABA TODO
+            if (!isValidResourceUrl(linkUrl) && !linkUrl.includes('github.com')) continue;
 
             seen.add(linkUrl);
             resources.push({
@@ -285,10 +581,18 @@ async function crawlResourceList(url) {
                 source_url: url,
                 source_type: 'github-list',
             });
+
+            // 🔥 DEEP RESEARCH: Seguir repos de GitHub encontrados en listas awesome
+            if (linkUrl.includes('github.com') && deepFollowed < 8 && looksLikeTechResource(name, '')) {
+                await new Promise(r => setTimeout(r, 2000));
+                const deepResources = await deepCrawlUrl(linkUrl, 2, name);
+                resources.push(...deepResources);
+                deepFollowed++;
+            }
         }
 
-        console.log(`[Crawler] 📋 Extraídos ${resources.length} links de lista: ${url}`);
-        return resources.slice(0, 100); // Las listas pueden ser grandes
+        console.log(`[Crawler] 📋 Extraídos ${resources.length} links (${deepFollowed} deep-followed) de lista: ${url}`);
+        return resources.slice(0, 200);
     } catch (err) {
         console.error('[Crawler Resource List] Error:', err.message);
         return [];
@@ -319,7 +623,6 @@ async function crawlGeneric(url) {
             if (seen.has(fullUrl)) return;
             if (!isValidResourceUrl(fullUrl)) return;
 
-            // Solo links que parezcan recursos tech
             const context = `${text} ${$(el).attr('title') || ''}`;
             if (looksLikeTechResource(context, '')) {
                 seen.add(fullUrl);
@@ -340,31 +643,27 @@ async function crawlGeneric(url) {
     }
 }
 
-// ── Crawler para free-for.dev ───────────────────────────
+// ── Crawler para free-for.dev + DEEP ───────────────────
 async function crawlFreeForDev(url) {
     try {
-        // free-for.dev tiene su data en markdown en GitHub
         const readmeUrl = 'https://raw.githubusercontent.com/ripienaar/free-for-dev/master/README.md';
         const response = await axios.get(readmeUrl, { headers: getRandomHeaders(), timeout: TIMEOUT });
         const readme = response.data;
         const resources = [];
         const seen = new Set();
 
-        // Extraer links markdown
         const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g;
         let match;
         let currentSection = 'general';
 
         const lines = readme.split('\n');
         for (const line of lines) {
-            // Detectar sección actual
             const sectionMatch = line.match(/^##\s+(.+)/);
             if (sectionMatch) {
                 currentSection = sectionMatch[1].trim().toLowerCase();
                 continue;
             }
 
-            // Buscar links en la línea
             linkRegex.lastIndex = 0;
             while ((match = linkRegex.exec(line)) !== null) {
                 const name = match[1].trim();
@@ -372,7 +671,7 @@ async function crawlFreeForDev(url) {
 
                 if (seen.has(linkUrl)) continue;
                 if (!isValidResourceUrl(linkUrl)) continue;
-                if (linkUrl.includes('github.com')) continue;
+                // 🔥 YA NO IGNORAMOS LINKS DE GITHUB
                 if (name.length < 3) continue;
 
                 seen.add(linkUrl);
@@ -396,6 +695,53 @@ async function crawlFreeForDev(url) {
     }
 }
 
+// ══════════════════════════════════════════════════════════════
+// 🔥 NUEVO: Crawler de Hacker News (Comments Deep Mining)
+// ══════════════════════════════════════════════════════════════
+async function crawlHackerNews() {
+    const resources = [];
+    try {
+        // Buscar historias recientes sobre GPU/ML/free compute
+        const queries = ['free gpu', 'colab notebook', 'self-hosted llm', 'gpu cloud free'];
+
+        for (const query of queries) {
+            try {
+                const searchUrl = `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=10`;
+                const resp = await axios.get(searchUrl, { timeout: TIMEOUT });
+
+                for (const hit of resp.data?.hits || []) {
+                    const storyUrl = hit.url;
+                    if (!storyUrl || !isValidResourceUrl(storyUrl)) continue;
+                    if (globalVisited.has(storyUrl)) continue;
+
+                    resources.push({
+                        name: (hit.title || '').substring(0, 255),
+                        url: storyUrl,
+                        description: `HN ${hit.points} points | ${hit.num_comments} comments`.substring(0, 1000),
+                        source_url: `https://news.ycombinator.com/item?id=${hit.objectID}`,
+                        source_type: 'hackernews',
+                    });
+
+                    // 🔥 DEEP: Seguir el link al Nivel 2
+                    if (storyUrl.includes('github.com')) {
+                        await new Promise(r => setTimeout(r, 2000));
+                        const deepResources = await deepCrawlUrl(storyUrl, 2, hit.title);
+                        resources.push(...deepResources);
+                    }
+                }
+                await new Promise(r => setTimeout(r, 1000));
+            } catch (e) {
+                console.error(`[HN] Error buscando "${query}":`, e.message?.substring(0, 60));
+            }
+        }
+
+        console.log(`[Crawler] 🟠 HackerNews: ${resources.length} recursos extraídos`);
+    } catch (err) {
+        console.error('[Crawler HN] Error:', err.message);
+    }
+    return resources;
+}
+
 // ── Dispatcher principal ────────────────────────────────
 async function crawlSource(source) {
     console.log(`[Crawler] 🔍 Crawleando: ${source.name} (${source.url})`);
@@ -408,6 +754,8 @@ async function crawlSource(source) {
         results = await crawlFreeForDev(source.url);
     } else if (source.url.includes('github.com')) {
         results = await crawlGitHub(source.url);
+    } else if (source.url.includes('hn.algolia.com') || source.name?.toLowerCase().includes('hacker news')) {
+        results = await crawlHackerNews();
     } else {
         results = await crawlGeneric(source.url);
     }
@@ -424,12 +772,15 @@ async function crawlSource(source) {
 
 // ── Ejecutar todos los crawlers ─────────────────────────
 async function runAllCrawlers() {
+    // Reset global tracking para nueva sesión
+    resetDeepCrawlStats();
+
     try {
         const { rows: sources } = await pool.query(
             `SELECT * FROM crawl_sources WHERE is_active = true ORDER BY last_crawled ASC NULLS FIRST`
         );
 
-        console.log(`[Crawler] Iniciando crawling de ${sources.length} fuentes...`);
+        console.log(`[Crawler] Iniciando crawling de ${sources.length} fuentes (DEEP RESEARCH MODE: Max Nivel ${MAX_DEEP_DEPTH})...`);
         let totalResources = 0;
 
         for (const source of sources) {
@@ -441,7 +792,7 @@ async function runAllCrawlers() {
                     await saveRawResource(resource);
                 }
 
-                // Backoff entre fuentes (respetar rate limits)
+                // Backoff entre fuentes
                 await new Promise(resolve => setTimeout(resolve, 3000));
             } catch (err) {
                 console.error(`[Crawler] Error en ${source.name}:`, err.message);
@@ -452,10 +803,32 @@ async function runAllCrawlers() {
             }
         }
 
+        // 🔥 BONUS: Ejecutar crawler de HackerNews como fuente extra
+        try {
+            console.log('[Crawler] 🟠 Ejecutando crawler de HackerNews (fuente extra)...');
+            const hnResources = await crawlHackerNews();
+            for (const resource of hnResources) {
+                await saveRawResource(resource);
+            }
+            totalResources += hnResources.length;
+        } catch (e) {
+            console.error('[Crawler HN Extra] Error:', e.message);
+        }
+
+        // Estadísticas DEEP
+        console.log(`\n🔥 DEEP RESEARCH STATS:`);
+        console.log(`  → Nivel 1 (Superficie): ${deepCrawlStats.level1} recursos`);
+        console.log(`  → Nivel 2 (Sub-links):  ${deepCrawlStats.level2} recursos`);
+        console.log(`  → Nivel 3 (Profundo):   ${deepCrawlStats.level3} recursos`);
+        console.log(`  → Total Deep:           ${deepCrawlStats.total} recursos extras\n`);
+
         await pool.query(
             `INSERT INTO system_log (module, action, status, message, metadata)
        VALUES ('crawler', 'run_all', 'success', $1, $2)`,
-            [`Crawling completado: ${totalResources} recursos válidos`, JSON.stringify({ sources: sources.length, resources: totalResources })]
+            [
+                `Deep Crawling completado: ${totalResources} recursos (L2: ${deepCrawlStats.level2}, L3: ${deepCrawlStats.level3})`,
+                JSON.stringify({ sources: sources.length, resources: totalResources, deep: deepCrawlStats })
+            ]
         );
 
         return totalResources;
@@ -483,4 +856,4 @@ async function saveRawResource(resource) {
     }
 }
 
-module.exports = { crawlSource, runAllCrawlers, fetchPage };
+module.exports = { crawlSource, runAllCrawlers, fetchPage, deepCrawlUrl };

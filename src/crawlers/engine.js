@@ -1,9 +1,12 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const pool = require('../db/pool');
+const { env } = require('../modules/env');
+const { writeSystemLog } = require('../modules/system_log');
 
-const TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT_MS) || 15000;
-const MAX_DEEP_DEPTH = parseInt(process.env.DEEP_CRAWL_DEPTH) || 3;
+const TIMEOUT = env.requestTimeoutMs;
+const MAX_DEEP_DEPTH = env.deepCrawlDepth;
+const MAX_CONCURRENT_CRAWLS = env.maxConcurrentCrawls;
 
 // URLs basura que NO son recursos tecnológicos reales
 const JUNK_DOMAINS = [
@@ -74,6 +77,24 @@ const TECH_KEYWORDS = [
     'diffusion model', 'stable diffusion', 'llama', 'mistral', 'phi', 'gemma',
     'ollama', 'vllm', 'text generation', 'transformers', 'machine learning',
     'tensorflow', 'self-hosted', 'open source', 'mlops', 'ml pipeline',
+
+    // 📈 G. Infraestructura HFT / Trading en Tiempo Real (Alta Frecuencia)
+    'timescaledb', 'timescale', 'questdb', 'questdb cloud', 'influxdb', 'influx',
+    'kdb+', 'kdb plus', 'arctic', 'clickhouse', 'clickhouse free',
+    'redis', 'redis free', 'dragonfly db', 'dragonfly docker', 'valkey',
+    'memcached', 'keydb', 'upstash', 'upstash redis', 'upstash free',
+    'kafka free', 'apache kafka', 'redpanda', 'redpanda free', 'confluent free',
+    'nats.io', 'nats streaming', 'rabbitmq', 'zeromq', 'message queue',
+    'tick data', 'ohlcv', 'candlestick data', 'market data free',
+    'websocket trading', 'trading feed', 'orderbook stream', 'limit order book',
+    'high frequency', 'high-frequency trading', 'hft', 'algo trading', 'algorithmic trading',
+    'time series', 'time-series database', 'tsdb', 'time series free',
+    'real-time database', 'streaming database', 'event streaming', 'data streaming',
+    'ccxt', 'ccxt websocket', 'binance websocket', 'bybit websocket', 'crypto feed',
+    'kucoin api free', 'binance api free', 'crypto market data free',
+    'financial data api free', 'stock market api free unlimited',
+    'supabase realtime', 'firebase realtime', 'pocketbase', 'appwrite',
+    'free realtime database', 'free websocket server', 'socket.io free',
 ];
 
 const HEADERS_LIST = [
@@ -92,6 +113,31 @@ function getRandomHeaders() {
 // ══════════════════════════════════════════════
 const globalVisited = new Set();
 let deepCrawlStats = { level1: 0, level2: 0, level3: 0, total: 0 };
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function runInBatches(items, limit, worker, delayMs = 0) {
+    let total = 0;
+
+    for (let index = 0; index < items.length; index += limit) {
+        const batch = items.slice(index, index + limit);
+        const results = await Promise.allSettled(batch.map(worker));
+
+        for (const result of results) {
+            if (result.status === 'fulfilled') {
+                total += result.value || 0;
+            }
+        }
+
+        if (delayMs > 0 && index + limit < items.length) {
+            await sleep(delayMs);
+        }
+    }
+
+    return total;
+}
 
 function resetDeepCrawlStats() {
     globalVisited.clear();
@@ -760,6 +806,17 @@ async function crawlGoogle() {
         'self hosted LLM free GPU',
         'free cloud GPU jupyter notebook',
         'oracle cloud free tier GPU ARM',
+        // 📈 HFT / Trading Infraestructura (nuevas - Marzo 2026)
+        'timescaledb free unlimited self-hosted',
+        'questdb free open source time series database',
+        'upstash redis free tier unlimited',
+        'redpanda kafka free self-hosted docker',
+        'free real-time database trading bot 2025 2026',
+        'free websocket crypto market data open source',
+        'free financial market data api unlimited requests',
+        'clickhouse free self-hosted docker high frequency',
+        'dragonfly db redis alternative free unlimited',
+        'free crypto ohlcv tick data api websocket',
     ];
 
     for (const query of queries) {
@@ -842,6 +899,15 @@ async function crawlDuckDuckGo() {
         'colab keepalive bypass timeout script',
         'vast.ai runpod lambda GPU free tier',
         'free cloud GPU training deep learning',
+        // 📈 HFT / Trading Infraestructura (nuevas - Marzo 2026)
+        'timescaledb questdb free open source trading database',
+        'influxdb free self hosted docker time series',
+        'redis free unlimited alternative trading cache',
+        'free websocket server crypto trading bot self-hosted',
+        'free kafka redpanda alternative open source stream',
+        'free real time market data api unlimited crypto',
+        'clickhouse dragonfly keydb free docker alternative',
+        'free ohlcv candlestick api no limit 2025',
     ];
 
     for (const query of queries) {
@@ -1190,6 +1256,10 @@ async function crawlSource(source) {
         `UPDATE crawl_sources SET last_crawled = NOW() WHERE id = $1`,
         [source.id]
     );
+    await pool.query(
+        `UPDATE crawl_sources SET success_rate = LEAST(success_rate + 1, 100) WHERE id = $1`,
+        [source.id]
+    );
 
     console.log(`[Crawler] ✅ ${results.length} recursos válidos de ${source.name}`);
     return results;
@@ -1205,28 +1275,31 @@ async function runAllCrawlers() {
             `SELECT * FROM crawl_sources WHERE is_active = true ORDER BY last_crawled ASC NULLS FIRST`
         );
 
-        console.log(`[Crawler] Iniciando crawling de ${sources.length} fuentes DB + 8 plataformas extra (DEEP RESEARCH MODE: Max Nivel ${MAX_DEEP_DEPTH})...`);
+        console.log(`[Crawler] Iniciando crawling de ${sources.length} fuentes DB + 9 plataformas extra (Max Nivel ${MAX_DEEP_DEPTH}, concurrencia ${MAX_CONCURRENT_CRAWLS})...`);
         let totalResources = 0;
 
         // ══════════════════════════════════════════════
         // FASE 1: Fuentes de la base de datos (las originales)
         // ══════════════════════════════════════════════
-        for (const source of sources) {
-            try {
-                const resources = await crawlSource(source);
-                totalResources += resources.length;
-                for (const resource of resources) {
-                    await saveRawResource(resource);
+        totalResources += await runInBatches(
+            sources,
+            MAX_CONCURRENT_CRAWLS,
+            async (source) => {
+                try {
+                    const resources = await crawlSource(source);
+                    await Promise.all(resources.map((resource) => saveRawResource(resource)));
+                    return resources.length;
+                } catch (err) {
+                    console.error(`[Crawler] Error en ${source.name}:`, err.message);
+                    await pool.query(
+                        `UPDATE crawl_sources SET success_rate = GREATEST(success_rate - 5, 0) WHERE id = $1`,
+                        [source.id]
+                    );
+                    return 0;
                 }
-                await new Promise(resolve => setTimeout(resolve, 3000));
-            } catch (err) {
-                console.error(`[Crawler] Error en ${source.name}:`, err.message);
-                await pool.query(
-                    `UPDATE crawl_sources SET success_rate = GREATEST(success_rate - 5, 0) WHERE id = $1`,
-                    [source.id]
-                );
-            }
-        }
+            },
+            2000
+        );
 
         // ══════════════════════════════════════════════
         // FASE 2: Plataformas EXTRA hardcodeadas (el arsenal completo)
@@ -1266,18 +1339,18 @@ async function runAllCrawlers() {
         console.log(`  → Total Deep:           ${deepCrawlStats.total} recursos extras`);
         console.log(`  → TOTAL GLOBAL:         ${totalResources} recursos\n`);
 
-        await pool.query(
-            `INSERT INTO system_log (module, action, status, message, metadata)
-       VALUES ('crawler', 'run_all', 'success', $1, $2)`,
-            [
-                `MEGA Crawling completado: ${totalResources} recursos (L2: ${deepCrawlStats.level2}, L3: ${deepCrawlStats.level3})`,
-                JSON.stringify({ sources: sources.length, bonusPlatforms: bonusCrawlers.length, resources: totalResources, deep: deepCrawlStats })
-            ]
+        await writeSystemLog(
+            'crawler',
+            'run_all',
+            'success',
+            `MEGA Crawling completado: ${totalResources} recursos (L2: ${deepCrawlStats.level2}, L3: ${deepCrawlStats.level3})`,
+            { sources: sources.length, bonusPlatforms: bonusCrawlers.length, resources: totalResources, deep: deepCrawlStats }
         );
 
         return totalResources;
     } catch (err) {
         console.error('[Crawler] Error general:', err.message);
+        await writeSystemLog('crawler', 'run_all', 'error', err.message);
         return 0;
     }
 }
@@ -1289,8 +1362,20 @@ async function saveRawResource(resource) {
             `INSERT INTO resources (name, url, description, source_url, source_type)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (url) DO UPDATE SET
+         name = EXCLUDED.name,
+         description = EXCLUDED.description,
+         source_url = EXCLUDED.source_url,
+         source_type = EXCLUDED.source_type,
          last_checked = NOW(),
-         updated_at = NOW()`,
+         updated_at = NOW(),
+         last_changed = CASE
+            WHEN resources.name IS DISTINCT FROM EXCLUDED.name
+              OR resources.description IS DISTINCT FROM EXCLUDED.description
+              OR resources.source_url IS DISTINCT FROM EXCLUDED.source_url
+              OR resources.source_type IS DISTINCT FROM EXCLUDED.source_type
+            THEN NOW()
+            ELSE resources.last_changed
+         END`,
             [resource.name, resource.url, resource.description, resource.source_url, resource.source_type]
         );
     } catch (err) {

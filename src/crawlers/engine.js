@@ -793,30 +793,39 @@ async function crawlHackerNews() {
 // ══════════════════════════════════════════════════════════════
 async function crawlGoogle() {
     const resources = [];
+    // ══════════════════════════════════════════════════════════════
+    // 🧠 PLAN OPERATIVO: "CEREBRO INFINITO" — Búsqueda Centralizada
+    // Objetivo: Encontrar APIs LLM con Free Tier Real (RPM/TPD sin tarjeta)
+    // TODAS las categorías anteriores están en PAUSA hasta nuevo aviso.
+    // ══════════════════════════════════════════════════════════════
     const queries = [
-        'free GPU cloud computing 2025 2026',
-        'free colab alternative GPU notebook',
-        'free NVIDIA GPU credits developers',
-        'serverless GPU inference free tier',
-        'free A100 H100 cloud access',
-        'docker GPU nvidia free hosting',
-        'compute grants open source AI ML',
-        'free deep learning training cloud',
-        'google colab keep alive bypass timeout',
-        'self hosted LLM free GPU',
-        'free cloud GPU jupyter notebook',
-        'oracle cloud free tier GPU ARM',
-        // 📈 HFT / Trading Infraestructura (nuevas - Marzo 2026)
-        'timescaledb free unlimited self-hosted',
-        'questdb free open source time series database',
-        'upstash redis free tier unlimited',
-        'redpanda kafka free self-hosted docker',
-        'free real-time database trading bot 2025 2026',
-        'free websocket crypto market data open source',
-        'free financial market data api unlimited requests',
-        'clickhouse free self-hosted docker high frequency',
-        'dragonfly db redis alternative free unlimited',
-        'free crypto ohlcv tick data api websocket',
+        // ── Vector 1: Aceleradores LPU (SambaNova, Groq, Cerebras) ──
+        'SambaNova Cloud API free tier rate limits developers 2026',
+        'Groq API free tier rate limits RPM no credit card 2026',
+        'Cerebras API free tier developers unlimited tokens 2026',
+        'SambaNova Llama 405B free inference API signup',
+        'Groq Llama 3.3 70B free RPM requests per minute limit',
+
+        // ── Vector 2: Big Tech AI Studios ──
+        'Google AI Studio Gemini 2.0 Flash free tier limits RPM TPM 2026',
+        'Google AI Studio free API key no credit card limits',
+        'GitHub Models free API GPT-4o Llama rate limits 2026',
+        'Cloudflare Workers AI free tier limits models 2026',
+        'GitHub Copilot free LLM API access limits 2026',
+
+        // ── Vector 3: Open Source Aggregators ──
+        'OpenRouter free models API tier RPM limit 2026',
+        'Together AI free tier signup credit no credit card',
+        'Fireworks AI free tier developers 2026',
+        'OpenRouter free models list unlimited access',
+        'Together AI free inference API limits tokens',
+
+        // ── Vector 4: Proveedores Asiáticos / DeepSeek Ecosystem ──
+        'SiliconFlow free tier tokens DeepSeek V3 API 2026',
+        'DeepSeek API free tier signup bonus RPM limits 2026',
+        'Kluster.ai free tier generous LLM API 2026',
+        'Asian LLM API free tier millions tokens signup 2026',
+        'SiliconFlow infinite free tokens small models RPM',
     ];
 
     for (const query of queries) {
@@ -890,24 +899,36 @@ async function crawlGoogle() {
 // ══════════════════════════════════════════════════════════════
 async function crawlDuckDuckGo() {
     const resources = [];
+    // ══════════════════════════════════════════════════════════════
+    // 🧠 PLAN OPERATIVO: "CEREBRO INFINITO" — DDG Deep Search
+    // TODAS las categorías anteriores están en PAUSA.
+    // ══════════════════════════════════════════════════════════════
     const queries = [
-        'free GPU cloud notebook colab alternative',
-        'free NVIDIA credits compute startup',
-        'self-hosted LLM free GPU inference',
-        'docker nvidia GPU container free',
-        'free compute grants AI research',
-        'colab keepalive bypass timeout script',
-        'vast.ai runpod lambda GPU free tier',
-        'free cloud GPU training deep learning',
-        // 📈 HFT / Trading Infraestructura (nuevas - Marzo 2026)
-        'timescaledb questdb free open source trading database',
-        'influxdb free self hosted docker time series',
-        'redis free unlimited alternative trading cache',
-        'free websocket server crypto trading bot self-hosted',
-        'free kafka redpanda alternative open source stream',
-        'free real time market data api unlimited crypto',
-        'clickhouse dragonfly keydb free docker alternative',
-        'free ohlcv candlestick api no limit 2025',
+        // ── Vector 1: LPU Accelerators ──
+        'Groq API free tier RPM tokens per day no credit card 2026',
+        'SambaNova Cloud free inference API rate limits 2026',
+        'Cerebras Cloud free developer API signup limits 2026',
+        'Groq vs SambaNova vs Cerebras free tier comparison 2026',
+
+        // ── Vector 2: Big Tech AI Studios ──
+        'Google AI Studio free API limits Gemini 2.0 Flash RPM TPM 2026',
+        'GitHub Models free API rate limits GPT-4o Llama 3 2026',
+        'Cloudflare Workers AI free tier model list requests per day',
+        'Google AI Studio free tier no credit card signup 2026',
+
+        // ── Vector 3: Open Source Aggregators ──
+        'OpenRouter free models API no credit card rate limits 2026',
+        'Together AI free 1 dollar credit no expiry signup',
+        'Fireworks AI free tier developer account API limits',
+        'OpenRouter free models unlimited RPM how to use',
+        'best free LLM API no credit card 2026 comparison',
+
+        // ── Vector 4: Ecosistema Asiático / DeepSeek ──
+        'SiliconFlow free unlimited tokens DeepSeek V3 R1 signup 2026',
+        'DeepSeek API free tier RPM limits developer signup 2026',
+        'Kluster.ai free API access generous tokens 2026',
+        'SiliconFlow free tokens Qwen small models rate limit',
+        'Asian AI API free tier no limit tokens 2026 signup',
     ];
 
     for (const query of queries) {
@@ -1385,4 +1406,4 @@ async function saveRawResource(resource) {
     }
 }
 
-module.exports = { crawlSource, runAllCrawlers, fetchPage, deepCrawlUrl };
+module.exports = { crawlSource, runAllCrawlers, fetchPage, deepCrawlUrl, crawlGoogle, crawlDuckDuckGo, saveRawResource };

@@ -4,26 +4,17 @@
 // 1,000,000 tokens/día gratis — sin tarjeta de crédito
 // ============================================
 
-const https = require('https');
+const axios = require('axios');
 const pool = require('../db/pool');
+const { env } = require('./env');
+
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+const OPENROUTER_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
 
 const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || '';
-const MODEL = 'gpt-oss-120b'; // Modelo más potente disponible en esta cuenta de Cerebras (120B parámetros)
+const CEREBRAS_MODEL = 'gpt-oss-120b';
 
-// ── Llamar a la API de Cerebras ───────────────────────
-function callAI(prompt, maxTokens = 800) {
-    return new Promise((resolve, reject) => {
-        if (!CEREBRAS_API_KEY) {
-            console.warn('[AI] ⚠️  CEREBRAS_API_KEY no está configurada.');
-            return resolve(null);
-        }
-
-        const body = JSON.stringify({
-            model: MODEL,
-            messages: [
-                {
-                    role: 'system',
-                    content: `Eres el analista de infraestructura de SENTINEL NEXUS — un sistema táctico para la "Soberanía del Cerebro DL".
+const SYSTEM_PROMPT = `Eres el analista de infraestructura de SENTINEL NEXUS — un sistema táctico para la "Soberanía del Cerebro DL".
 
 Tu misión es evaluar recursos y herramientas gratuitos con enfoque paramilitar: determinar si el recurso asegura cómputo GPU ininterrumpido 24/7 o poder de inferencia masivo para entrenar y ejecutar modelos de IA, analizando estas 6 áreas:
 1. 🖥️ Persistencia en Entornos de "Notebooks" (Evasión de Timeouts en Colab/Kaggle)
@@ -36,75 +27,74 @@ Tu misión es evaluar recursos y herramientas gratuitos con enfoque paramilitar:
 Escribes en español natural y conversacional como un colega senior de fintech.
 Usa emojis para estructurar pero sin exagerar. Sé brutalmente honesto.
 Si algo es basura disfrazada de free tier, dilo sin rodeos.
-Responde SOLO el contenido del reporte táctico, sin saludos ni despedidas.`
+Responde SOLO el contenido del reporte táctico, sin saludos ni despedidas, y en el caso de ser un reporte batch o un JSON, asegúrate de mantenerte en el formato estricto.`;
+
+// ── Llamar a las APIs ──────────────────────────────────────
+async function callAI(prompt, maxTokens = 800) {
+    if (OPENROUTER_API_KEY) {
+        try {
+            const res = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
+                model: OPENROUTER_MODEL,
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: prompt }
+                ],
+                max_tokens: maxTokens
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                    'Content-Type': 'application/json'
                 },
+                timeout: 30000 
+            });
+
+            const content = res.data?.choices?.[0]?.message?.content?.trim();
+            if (content) {
+                console.log(`[AI] 📊 Usando OpenRouter (${OPENROUTER_MODEL})`);
+                return content;
+            }
+        } catch (err) {
+            console.warn(`[AI] ⚠️ OpenRouter falló (${err.message}). Intantando fallback a Cerebras...`);
+        }
+    }
+
+    if (!CEREBRAS_API_KEY) {
+        console.warn('[AI] ⚠️ CEREBRAS_API_KEY tampoco configurada. Cancelando llamada AI.');
+        return null;
+    }
+
+    // Fallback a Cerebras
+    try {
+        const res = await axios.post('https://api.cerebras.ai/v1/chat/completions', {
+            model: CEREBRAS_MODEL,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
                 { role: 'user', content: prompt }
             ],
             max_completion_tokens: maxTokens,
             temperature: 0.7,
             top_p: 1,
-            stream: false,
-        });
-
-        const options = {
-            hostname: 'api.cerebras.ai',
-            path: '/v1/chat/completions',
-            method: 'POST',
+            stream: false
+        }, {
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${CEREBRAS_API_KEY}`,
-                'Content-Length': Buffer.byteLength(body),
+                'Content-Type': 'application/json'
             },
-        };
-
-        const req = https.request(options, (res) => {
-            let data = '';
-            res.on('data', (chunk) => data += chunk);
-            res.on('end', () => {
-                try {
-                    const parsed = JSON.parse(data);
-
-                    if (parsed.choices && parsed.choices[0]) {
-                        const message = parsed.choices[0].message;
-                        // gpt-oss-120b puede devolver content vacío con reasoning separado
-                        const content = (message?.content && message.content.trim().length > 0)
-                            ? message.content.trim()
-                            : (message?.reasoning && message.reasoning.trim().length > 0)
-                                ? message.reasoning.trim()
-                                : null;
-                        const usage = parsed.usage;
-                        if (usage) {
-                            console.log(`[AI] 📊 Tokens: ${usage.prompt_tokens} prompt + ${usage.completion_tokens} completion = ${usage.total_tokens} total`);
-                        }
-                        resolve(content || null);
-                    } else if (parsed.error) {
-                        console.error('[AI] ❌ Error de Cerebras:', parsed.error.message || JSON.stringify(parsed.error));
-                        resolve(null);
-                    } else {
-                        console.error('[AI] ⚠️ Respuesta inesperada de Cerebras:', data.substring(0, 300));
-                        resolve(null);
-                    }
-                } catch (e) {
-                    console.error('[AI] ❌ Error parseando respuesta JSON:', e.message);
-                    resolve(null);
-                }
-            });
+            timeout: 45000 
         });
 
-        req.on('error', (e) => {
-            console.error('[AI] ❌ Error de red con Cerebras:', e.message);
-            resolve(null);
-        });
+        const message = res.data?.choices?.[0]?.message;
+        const content = (message?.content?.trim()) || (message?.reasoning?.trim()) || null;
+        
+        if (content) {
+            console.log(`[AI] 📊 Usando Cerebras (${CEREBRAS_MODEL}) como fallback`);
+            return content;
+        }
+    } catch (err) {
+        console.error(`[AI] ❌ Cerebras Falló: ${err.message}`);
+    }
 
-        req.setTimeout(45000, () => {
-            console.error('[AI] ⏱️ Timeout esperando respuesta de Cerebras (45s)');
-            req.destroy();
-            resolve(null);
-        });
-
-        req.write(body);
-        req.end();
-    });
+    return null;
 }
 
 // ── Analizar un recurso individual con informe detallado ──

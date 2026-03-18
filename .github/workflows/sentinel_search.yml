@@ -22,13 +22,13 @@ jobs:
     - name: 📦 Instalar Motores (Dependencies)
       run: npm ci || npm install
       
-    - name: 🔥 Disparo del MEGA Crawler (7GB RAM)
+     - name: 🔥 Ejecutar MEGA Crawler (7GB RAM)
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}  # <--- ¡AÑADE ESTA LÍNEA!
         NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
       run: node run_crawler.js
+

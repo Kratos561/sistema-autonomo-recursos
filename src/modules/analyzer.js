@@ -170,8 +170,8 @@ Proporciona un snippet de código viable (Node.js o Python) que demuestre cómo 
 // ── Informe ejecutivo batch de recursos nuevos ─────────
 async function generateBatchReport(resources) {
     if (!resources || resources.length === 0) return null;
-    if (!CEREBRAS_API_KEY) {
-        console.log('[AI] ⚠️ No hay API key de Cerebras configurada');
+    if (!OPENROUTER_API_KEY && !CEREBRAS_API_KEY) {
+        console.log('[AI] ⚠️ No hay API keys configuradas');
         return null;
     }
 
@@ -208,8 +208,8 @@ Si hay alguno que parezca de poco valor, temporal, o sospechoso, mencionarlo con
 
 // ── Pipeline principal de análisis ────────────────────
 async function analyzeNewResources() {
-    if (!CEREBRAS_API_KEY) {
-        console.log('[AI] ⚠️ CEREBRAS_API_KEY no configurada — saltando análisis de IA');
+    if (!OPENROUTER_API_KEY && !CEREBRAS_API_KEY) {
+        console.log('[AI] ⚠️ API keys no configuradas — saltando análisis de IA');
         return { analyzed: 0, report: null };
     }
 
@@ -231,7 +231,8 @@ async function analyzeNewResources() {
             return { analyzed: 0, report: null };
         }
 
-        console.log(`[AI] 🧠 Iniciando análisis de ${unanalyzed.length} recursos con Cerebras (${MODEL})...`);
+        const currentModel = OPENROUTER_API_KEY ? OPENROUTER_MODEL : CEREBRAS_MODEL;
+        console.log(`[AI] 🧠 Iniciando análisis de ${unanalyzed.length} recursos con ${currentModel}...`);
 
         let analyzed = 0;
         for (const resource of unanalyzed) {
@@ -249,8 +250,8 @@ async function analyzeNewResources() {
             `INSERT INTO system_log (module, action, status, message, metadata)
              VALUES ('analyzer', 'analyze_batch', 'success', $1, $2)`,
             [
-                `${analyzed}/${unanalyzed.length} recursos analizados con Cerebras (${MODEL})`,
-                JSON.stringify({ analyzed, total: unanalyzed.length, model: MODEL })
+                `${analyzed}/${unanalyzed.length} recursos analizados con IA (${currentModel})`,
+                JSON.stringify({ analyzed, total: unanalyzed.length, model: currentModel })
             ]
         );
 
